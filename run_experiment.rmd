@@ -38,32 +38,74 @@ source(here::here("r/bayesian_sir.r"))
 source(here::here("r/bayesian_uncertainty.r"))
 ```
 
-First we get our input data:
+Name the experiment:
 ```{r}
-# read SLC polygon IDs
-polyids_all <- readr::read_csv(here("data/climate_data","Documentation", "SLC_PCPTREGION.csv"))
-# read site data
-site_data <- readr::read_csv(here("data/all_experiments_dummy.csv")) %>%
-#site_data <- readr::read_csv(here("data/lte_master_beta_dec02.csv")) %>%
+experiment_name <- "test"
+experiment_model <- "ipcct2"
+experiment_time <- Sys.time() %>%
+	format("%Y-%m-%dT%H%M%S")
+
+experiment_folder <- paste(experiment_name, experiment_time,  sep="_")
+experiment_path <- here("results", experiment_model, experiment_folder)
+
+dir.create(here(experiment_path))
+dir.create(here(experiment_path, "code"))
+dir.create(here(experiment_path, "figures"))
+dir.create(here(experiment_path, "inputs"))
+dir.create(here(experiment_path, "outputs"))
+```
+
+
+Get input data:
+```{r}
+# Read SLC polygon IDs
+polyids_all <- readr::read_csv(here("data","climate_data","Documentation", "SLC_PCPTREGION.csv"))
+# Read site data
+site_data <- readr::read_csv(here("data","all_experiments_dummy.csv")) %>%
+	#site_data <- readr::read_csv(here("data/lte_master_beta_dec02.csv")) %>%
 	left_join(polyids_all, by=c("latitude" = "Lat", "longitude" = "Long")) %>%
 	mutate(tillage = ifelse(is.na(tillage), "CT", tillage))
+
+# Save to file
+readr::write_csv(site_data, file=paste0(experiment_path,"/inputs/site_data.csv"))
 ```
+
 
 Split the data into calibration and validation sets:
 ```{r}
 calibration_data <- site_data %>%
 	filter(location_name %in% c("Ellerslie", "Harrow")) %>%
-		group_by(location_name, treatment_name, replication_number) %>%
+	group_by(location_name, treatment_name, replication_number) %>%
 	group_split
+calibration_data <- calibration_data[1:5]
 validation_data <- site_data %>%
 	filter(!location_name %in% c("Ellerslie", "Harrow")) %>%
-		group_by(location_name, treatment_name, replication_number) %>%
+	group_by(location_name, treatment_name, replication_number) %>%
 	group_split
+
+# Save to file
+calibration_data %>%
+	bind_rows() %>%
+	readr::write_csv(file=here(experiment_path,"inputs","site_data_calibration.csv"))
+validation_data %>%
+	bind_rows() %>%
+	readr::write_csv(file=here(experiment_path,"inputs","site_data_validation.csv"))
 ```
 
 Get climate data:
 ```{r}
-climate_data <- read_climate_data(climate_data_directory = here("data/climate_data","W9param_TablesCleaned"))
+climate_data <- read_climate_data(climate_data_directory = here("data","climate_data","W9param_TablesCleaned"))
+
+# Save to file
+readr::write_csv(climate_data, file=here(experiment_path,"inputs","climate_data.csv"))
+```
+
+Parameter ranges that are used for sensitivity analysis and bayesian calibration:
+```{r}
+param_bounds <- read.csv(here("data","ipcct2_parameters_gsa.csv"), stringsAsFactors = FALSE)
+
+# Save to file
+readr::write_csv(param_bounds, file=here(experiment_path,"inputs","parameter_ranges.csv"))
 ```
 
 Run spinup:
@@ -71,29 +113,152 @@ Run spinup:
 calibration_data_spinup <- calibration_data %>%
 	map(~slice(., 1:10))
 
-#Get initial C
-initial_c_calibration <- calibration_data %>%
+# Get initial C
+initial_c_calibration_measured <- calibration_data %>%
 	map(~.$initial_soc_tha[1]*10) %>%
 	map(~ifelse(is.na(.), 1000, .))
 
-spinup_calibration <- map2(.x = calibration_data_spinup,
-													 .y = initial_c_calibration,
-													 ~spinup(site_data = .x, 
-													 				climate_data = climate_data,
-													 				initial_c = .y,
-													 				model = "ipcct2"))
+# Run spinup
+initial_c_calibration_spinup <- map2(.x = calibration_data_spinup,
+																		 .y = initial_c_calibration_measured,
+																		 ~spinup(site_data = .x, 
+																		 				climate_data = climate_data,
+																		 				initial_c = .y,
+																		 				model = "ipcct2"))
+
 ```
 
-Sensitivity analysis
+Sensitivity analysis:
 ```{r}
-param_bounds <- read.csv(here("data/ipcct2_parameters_gsa.csv"), stringsAsFactors = FALSE)
-param_bounds
-
 sensitivity_calibration <- gsa(site_data = calibration_data,
-													climate_data = climate_data,
-													initial_c = spinup_calibration,
-													parameter_bounds = param_bounds,
-													sample_size = 100)
+															 climate_data = climate_data,
+															 initial_c = initial_c_calibration_spinup,
+															 parameter_bounds = param_bounds,
+															 sample_size = 3,
+															 method = "soboljansen")
+
+# Save to file
+readr::write_csv(sensitivity_calibration, file=here(experiment_path,"outputs","sensitivity.csv"))
 ```
+
+```{r}
+## Graphing
+# First-order sensitivity
+sensitivity_graph_first <- ggplot(sensitivity_calibration, aes(x = reorder(params, -singsi), y = singsi, ymax=singsi.uci, ymin=singsi.lci)) + 
+	xlab("Parameters") +
+	ylab("First-Order Sensitivity Index") +
+	geom_errorbar(width=0.2, linewidth=1, color="black") +
+	geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
+	coord_flip() +
+	theme_bw()
+
+# Total order sensitivity
+sensitivity_graph_total <- ggplot(sensitivity_calibration, aes(x = reorder(params, -singsi), y = totsi, ymax=totsi.uci, ymin=totsi.lci))+ 
+	xlab("Parameters") +
+	ylab("Total-Order Sensitivity Index") + 
+	geom_errorbar(width=0.2, size=1, color="black")+
+	geom_bar(stat='identity', fill="grey", alpha=0.70) +
+	coord_flip() +
+	theme_bw()
+
+# Both
+sensitivity_graph_both <- ggplot(sensitivity_calibration, aes(x = reorder(params, -singsi), y = totsi, ymax=totsi.uci, ymin=totsi.lci)) +
+	geom_bar(aes(y = singsi), stat='identity', fill="black", alpha=0.7)+
+	geom_bar(aes(y = totsi), stat='identity', fill="grey", alpha=0.7)+
+	geom_errorbar(width=0.2, size=1)+
+	coord_flip() +
+	theme_bw()
+
+ggsave(plot = sensitivity_graph_first, filename = here(experiment_path,"figures","sensitivity_first.png"))
+ggsave(plot = sensitivity_graph_total, filename = here(experiment_path,"figures","sensitivity_total.png"))
+ggsave(plot = sensitivity_graph_both, filename = here(experiment_path,"figures","sensitivity_both.png"))
+```
+
+Sampling importance resampling (SIR):
+```{r}
+sir_calibration <- sir(site_data = calibration_data,
+											 climate_data = climate_data,
+											 initial_c = initial_c_calibration_spinup,
+											 parameter_bounds = param_bounds,
+											 sample_size = 4,
+											 resample_size = 3)
+
+readr::write_csv(sir_calibration$prior, file=paste0(experiment_path,"/outputs/prior.csv"))
+readr::write_csv(sir_calibration$posterior, file=paste0(experiment_path,"/outputs/posterior.csv"))
+
+
+get_map <- function(x) {
+	dens <- x %>%
+		density
+	return(dens$x[which.max(dens$y)])
+}
+
+sir_table <- sir_calibration$posterior %>%
+	pivot_longer(cols = !SampleID) %>%
+	group_by(parameter = name) %>%
+	summarise(`2.5%` = quantile(value, probs = 0.025),
+						`25%` = quantile(value, probs = 0.25),
+						median = quantile(value, probs = 0.50),
+						`75%` = quantile(value, probs = 0.75),
+						`97.5%` = quantile(value, probs = 0.975),
+						map = get_map(value))
+
+readr::write_csv(sir_table, file=paste0(experiment_path,"/outputs/sir_summary.csv"))
+```
+
+
+```{r}
+prior <- sir_calibration$prior %>%
+	pivot_longer(cols = !`SampleID`)
+posterior <- sir_calibration$posterior %>%
+	pivot_longer(cols = !`SampleID`)
+
+sir_graph <- ggplot() +
+	geom_density(data = posterior, aes(value), col = NA, fill = "red", alpha = 0.2) +
+	geom_density(data = prior, aes(value), col = NA, fill = "blue", alpha = 0.2) +
+	facet_wrap(~name, scales = "free", ncol = 3) +
+	theme_bw() +
+	theme(panel.border = element_rect(colour = "black", fill = NA), panel.grid.major = element_blank(),
+				axis.title.x=element_blank(),panel.grid.minor = element_blank()) +
+	scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0))
+
+ggsave(plot = sir_graph, filename = here(experiment_path,"figures","sir.png"))
+```
+
+Uncertainty analysis:
+```{r}
+uncertainty_calibration <- montecarlo(site_data = calibration_data,
+																			climate_data = climate_data,
+																			initial_c = initial_c_calibration_spinup,
+																			distribution = sir_calibration$posterior,
+																			sample_size = 2)
+
+readr::write_csv(uncertainty_calibration$median, file=paste0(experiment_path,"/outputs/uncertainty_median.csv"))
+readr::write_csv(uncertainty_calibration$montecarlo, file=paste0(experiment_path,"/outputs/uncertainty_montecarlo.csv"))
+```
+
+```{r}
+uncertainty_graph <- ggplot(data = NULL, aes(x=soc_total/10, y=soc_tha*(30/(soil_depth_max_cm - soil_depth_min_cm)))) +
+	geom_point(data=uncertainty_calibration$montecarlo, color = "grey") +
+	geom_point(data=uncertainty_calibration$median, color="black") +
+	geom_abline(intercept = 0, slope = 1) +
+	coord_fixed(ratio = 1, xlim = c(0,400), ylim = c(0,400), expand = TRUE, clip="off") +
+	theme_bw()
+
+ggsave(plot = uncertainty_graph, filename = here(experiment_path,"figures","uncertainty.png"))
+```
+
+Save all code used in this analysis:
+
+```{r}
+parse(file = "run_experiment.rmd")
+
+ls()
+```
+
+
+
+
+
 
 

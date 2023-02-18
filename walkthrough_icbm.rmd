@@ -411,13 +411,14 @@ sa_ex_onesite_f99 <- gsa(site_data = sitedata_ex_onesite,
 
 sa_ex_onesite_f99
 
-ggplot(sa_ex_onesite_f99)+
-	geom_bar(aes(x=reorder(params, interactions), y=main),stat='identity', 
-					 fill="black") +
-	geom_bar(aes(x=reorder(params, interactions), y=interactions),
-					 stat='identity', fill="grey",alpha=0.7 ) +
-	coord_flip() +
-	theme_bw()
+# Graphing:
+# ggplot(sa_ex_onesite_f99)+
+# 	geom_bar(aes(x=reorder(params, interactions), y=main),stat='identity', 
+# 					 fill="black") +
+# 	geom_bar(aes(x=reorder(params, interactions), y=interactions),
+# 					 stat='identity', fill="grey",alpha=0.7 ) +
+# 	coord_flip() +
+# 	theme_bw()
 ```
 
 
@@ -464,9 +465,12 @@ ggplot(sa_ex_multipletrmt, aes(x = reorder(params, -singsi), y = totsi, ymax=tot
 			 	theme_bw()
 
 ```
+
 # Sampling Importance Resampling (SIR)
+
 Following the sensitivity analysis, we select the parameters that have the highest sensitivities for use in our Bayesian calibration.
 @gurungBayesianCalibrationDayCent2020 use a 2.5% cut-off value for sensitivity. Parameters above this level are considered "sensitive parameters" and are included in the SIR, otherwise they are excluded.
+
 ```{r}
 param_bounds
 sa_ex_onesite_sj
@@ -474,6 +478,7 @@ sa_ex_onesite_sj
 
 
 SIR can also be run using a list of site data.frames:
+
 ```{r}
 sir_ex_multipletrmt <- sir(site_data = sitedata_ex_multipletrmt,
 													climate_data = climate_data,
@@ -523,6 +528,7 @@ ggplot(data = NULL, aes(x=soc_total/10, y=soc_tha*(30/(soil_depth_max_cm - soil_
 # Appendix
 
 ## Parameter overrides: optimizing a parameter using `optim`
+
 To demonstrate a practical example of using parameter overrides, we will use the built-in `optim` function.
 
 `optim` passes a vector to the function you define, and finds the values that minimize this function.
@@ -569,7 +575,9 @@ icbm_wrapper_example <- function(parameters,
 	return(mean_re)
 }
 ```
+
 We can override a parameter using the first argument by hand, or pass the whole function into the `optim` function.
+
 ```{r}
 icbm_wrapper_example(
 	parameters = c(r_c = 1),
@@ -582,7 +590,9 @@ icbm_wrapper_example(
 
 optim(par = c(r_c = 0.5), fn = icbm_wrapper_example, method = "L-BFGS-B", lower = c(r_c = 0), upper = c(r_c = 1), SiteDataTable = sitedata_ex_multipletrmt[[1]], DailyClimateTable = climate_data)
 ```
+
 We can optimize for multiple parameters
+
 ```{r}
 optim(par = c(r_c = 0.5, hag = 0.1), fn = icbm_wrapper_example, method = "L-BFGS-B", lower = c(r_c = 0, hag = 0), upper = c(r_c = 1, hag = 1), SiteDataTable = sitedata_ex_multipletrmt[[1]], DailyClimateTable = climate_data)
 ```
