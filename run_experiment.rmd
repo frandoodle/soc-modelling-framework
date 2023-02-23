@@ -11,10 +11,8 @@ bibliography: bib.bib
 editor_options:
   chunk_output_type: inline
 ---
-
-
+<!-- Setup chunk: -->
 ```{r include=FALSE}
-
 library(ggplot2)
 library(knitr)
 library(dplyr)
@@ -25,9 +23,7 @@ library(stringr)
 library(here)
 library(lubridate)
 library(tidyr)
-
 dir.create(tempdir()) #This fixes a bug if the temporary directory is not found
-
 here::i_am("walkthrough_icbm.rmd")
 source(here::here("r/icbm_calculate_re.r"))
 source(here::here("r/icbm_run.r"))
@@ -38,13 +34,16 @@ source(here::here("r/bayesian_sir.r"))
 source(here::here("r/bayesian_uncertainty.r"))
 ```
 
-Name the experiment:
+Assign experimental parameters:
 ```{r}
 experiment_name <- "test"
 experiment_model <- "ipcct2"
 experiment_time <- Sys.time() %>%
 	format("%Y-%m-%dT%H%M%S")
+```
 
+Create folders needed for analysis:
+```{r}
 experiment_folder <- paste(experiment_name, experiment_time,  sep="_")
 experiment_path <- here("results", experiment_model, experiment_folder)
 
@@ -56,7 +55,9 @@ dir.create(here(experiment_path, "outputs"))
 ```
 
 
-Get input data:
+# Input data
+
+## Get site data:
 ```{r}
 # Read SLC polygon IDs
 polyids_all <- readr::read_csv(here("data","climate_data","Documentation", "SLC_PCPTREGION.csv"))
@@ -71,7 +72,7 @@ readr::write_csv(site_data, file=paste0(experiment_path,"/inputs/site_data.csv")
 ```
 
 
-Split the data into calibration and validation sets:
+## Split the data into calibration and validation sets:
 ```{r}
 calibration_data <- site_data %>%
 	filter(location_name %in% c("Ellerslie", "Harrow")) %>%
@@ -92,7 +93,7 @@ validation_data %>%
 	readr::write_csv(file=here(experiment_path,"inputs","site_data_validation.csv"))
 ```
 
-Get climate data:
+## Get climate data:
 ```{r}
 climate_data <- read_climate_data(climate_data_directory = here("data","climate_data","W9param_TablesCleaned"))
 
@@ -100,7 +101,7 @@ climate_data <- read_climate_data(climate_data_directory = here("data","climate_
 readr::write_csv(climate_data, file=here(experiment_path,"inputs","climate_data.csv"))
 ```
 
-Parameter ranges that are used for sensitivity analysis and bayesian calibration:
+## Parameter ranges that are used for sensitivity analysis and bayesian calibration:
 ```{r}
 param_bounds <- read.csv(here("data","ipcct2_parameters_gsa.csv"), stringsAsFactors = FALSE)
 
@@ -108,7 +109,7 @@ param_bounds <- read.csv(here("data","ipcct2_parameters_gsa.csv"), stringsAsFact
 readr::write_csv(param_bounds, file=here(experiment_path,"inputs","parameter_ranges.csv"))
 ```
 
-Run spinup:
+## Run spinup:
 ```{r}
 calibration_data_spinup <- calibration_data %>%
 	map(~slice(., 1:10))
@@ -128,7 +129,7 @@ initial_c_calibration_spinup <- map2(.x = calibration_data_spinup,
 
 ```
 
-Sensitivity analysis:
+# Sensitivity Analysis
 ```{r}
 sensitivity_calibration <- gsa(site_data = calibration_data,
 															 climate_data = climate_data,
@@ -141,8 +142,8 @@ sensitivity_calibration <- gsa(site_data = calibration_data,
 readr::write_csv(sensitivity_calibration, file=here(experiment_path,"outputs","sensitivity.csv"))
 ```
 
+## Graphing:
 ```{r}
-## Graphing
 # First-order sensitivity
 sensitivity_graph_first <- ggplot(sensitivity_calibration, aes(x = reorder(params, -singsi), y = singsi, ymax=singsi.uci, ymin=singsi.lci)) + 
 	xlab("Parameters") +
@@ -174,7 +175,7 @@ ggsave(plot = sensitivity_graph_total, filename = here(experiment_path,"figures"
 ggsave(plot = sensitivity_graph_both, filename = here(experiment_path,"figures","sensitivity_both.png"))
 ```
 
-Sampling importance resampling (SIR):
+# Sampling Importance Resampling (SIR)
 ```{r}
 sir_calibration <- sir(site_data = calibration_data,
 											 climate_data = climate_data,
@@ -206,7 +207,7 @@ sir_table <- sir_calibration$posterior %>%
 readr::write_csv(sir_table, file=paste0(experiment_path,"/outputs/sir_summary.csv"))
 ```
 
-
+## Graphing:
 ```{r}
 prior <- sir_calibration$prior %>%
 	pivot_longer(cols = !`SampleID`)
@@ -225,7 +226,15 @@ sir_graph <- ggplot() +
 ggsave(plot = sir_graph, filename = here(experiment_path,"figures","sir.png"))
 ```
 
-Uncertainty analysis:
+# Validation
+```{r}
+validation_calibration <- validation(site_data = calibration_data,
+											 climate_data = climate_data,
+											 initial_c = initial_c_calibration_spinup,
+											 model = "ipcct2")
+```
+
+# Uncertainty Analysis
 ```{r}
 uncertainty_calibration <- montecarlo(site_data = calibration_data,
 																			climate_data = climate_data,
@@ -237,6 +246,7 @@ readr::write_csv(uncertainty_calibration$median, file=paste0(experiment_path,"/o
 readr::write_csv(uncertainty_calibration$montecarlo, file=paste0(experiment_path,"/outputs/uncertainty_montecarlo.csv"))
 ```
 
+## Graphing
 ```{r}
 uncertainty_graph <- ggplot(data = NULL, aes(x=soc_total/10, y=soc_tha*(30/(soil_depth_max_cm - soil_depth_min_cm)))) +
 	geom_point(data=uncertainty_calibration$montecarlo, color = "grey") +
@@ -248,12 +258,10 @@ uncertainty_graph <- ggplot(data = NULL, aes(x=soc_total/10, y=soc_tha*(30/(soil
 ggsave(plot = uncertainty_graph, filename = here(experiment_path,"figures","uncertainty.png"))
 ```
 
-Save all code used in this analysis:
-
+# Save all code used in this analysis
 ```{r}
-parse(file = "run_experiment.rmd")
-
 ls()
+objects()
 ```
 
 
