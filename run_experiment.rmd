@@ -227,30 +227,64 @@ ggsave(plot = sir_graph, filename = here(experiment_path,"figures","sir.png"))
 ```
 
 # Validation
+
+## Graphing results
+
+## Calculating Validation statistics
 ```{r}
-validation_calibration <- validation(site_data = calibration_data,
+validation_calibration_prior <- validation(site_data = calibration_data,
 											 climate_data = climate_data,
 											 initial_c = initial_c_calibration_spinup,
-											 model = "ipcct2")
+											 distribution = sir_calibration$prior,
+											 model = "ipcct2") %>%
+	mutate(dist = "Prior Calibration")
+validation_calibration_posterior <- validation(site_data = calibration_data,
+											 climate_data = climate_data,
+											 initial_c = initial_c_calibration_spinup,
+											 distribution = sir_calibration$posterior,
+											 model = "ipcct2") %>%
+	mutate(dist = "Posterior Calibration")
+
+validation_calibration <- validation_calibration_prior %>%
+	bind_rows(validation_calibration_posterior)
 ```
+
+## Graphing validation statistics
+```{r}
+ggplot(validation_calibration, aes(y=RMSE, x=dist)) +
+	geom_violin() +
+	theme_bw()
+```
+
 
 # Uncertainty Analysis
 ```{r}
-uncertainty_calibration <- montecarlo(site_data = calibration_data,
+uncertainty_calibration_prior <- montecarlo(site_data = calibration_data,
+																			climate_data = climate_data,
+																			initial_c = initial_c_calibration_spinup,
+																			distribution = sir_calibration$prior,
+																			sample_size = 4)
+uncertainty_calibration_posterior <- montecarlo(site_data = calibration_data,
 																			climate_data = climate_data,
 																			initial_c = initial_c_calibration_spinup,
 																			distribution = sir_calibration$posterior,
-																			sample_size = 2)
+																			sample_size = 3)
 
-readr::write_csv(uncertainty_calibration$median, file=paste0(experiment_path,"/outputs/uncertainty_median.csv"))
-readr::write_csv(uncertainty_calibration$montecarlo, file=paste0(experiment_path,"/outputs/uncertainty_montecarlo.csv"))
+# Prior
+readr::write_csv(uncertainty_calibration_prior$median, file=paste0(experiment_path,"/outputs/uncertainty_median_prior.csv"))
+readr::write_csv(uncertainty_calibration_prior$montecarlo, file=paste0(experiment_path,"/outputs/uncertainty_montecarlo_prior.csv"))
+
+# Posterior
+readr::write_csv(uncertainty_calibration_posterior$median, file=paste0(experiment_path,"/outputs/uncertainty_median_posterior.csv"))
+readr::write_csv(uncertainty_calibration_posterior$montecarlo, file=paste0(experiment_path,"/outputs/uncertainty_montecarlo_posterior.csv"))
 ```
 
 ## Graphing
 ```{r}
 uncertainty_graph <- ggplot(data = NULL, aes(x=soc_total/10, y=soc_tha*(30/(soil_depth_max_cm - soil_depth_min_cm)))) +
-	geom_point(data=uncertainty_calibration$montecarlo, color = "grey") +
-	geom_point(data=uncertainty_calibration$median, color="black") +
+	geom_point(data=uncertainty_calibration_prior$montecarlo, shape=4, color = "lightgrey") +
+	geom_point(data=uncertainty_calibration_posterior$montecarlo, shape=3, color = "darkgrey") +
+	geom_point(data=uncertainty_calibration_posterior$median, color="black") +
 	geom_abline(intercept = 0, slope = 1) +
 	coord_fixed(ratio = 1, xlim = c(0,400), ylim = c(0,400), expand = TRUE, clip="off") +
 	theme_bw()

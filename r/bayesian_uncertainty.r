@@ -3,19 +3,18 @@ montecarlo <- function(site_data,
 							 climate_data,
 							 initial_c,
 							 distribution,
-							 sample_size = 10) {
+							 model = "ipcct2") {
 	# site_data can either be a data.frame, or a list of data.frames
 	if(!inherits(site_data, "list")) {
 		site_data <- list(site_data)
 	}
+	#initial_c should always be a list of lists
 	if(!any(sapply(initial_c, is.list))) {
 		initial_c <- list(initial_c)
 	}
 	if(length(site_data) != length(initial_c)) {
 		stop("site_data and initial_c cannot be different lengths")
 	}
-	# Sample from distribution
-	parameters_sample <- slice_sample(distribution, n = sample_size)
 	
 	# Median from distribution
 	parameters_median <- distribution %>%
@@ -29,7 +28,7 @@ montecarlo <- function(site_data,
 		cl=parallel::makeCluster(ncores)
 		doParallel::registerDoParallel(cl)
 		
-		model_results=foreach(parameters=1:nrow(parameters_sample),
+		model_results=foreach(parameters=1:nrow(distribution),
 													.packages = c("parallel", 
 																				"doParallel", 
 																				"tidyverse"),
