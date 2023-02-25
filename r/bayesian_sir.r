@@ -22,6 +22,7 @@ sir <- function(site_data,
 	if(!inherits(site_data, "list")) {
 		site_data <- list(site_data)
 	}
+	#initial_c should always be a list of lists
 	if(!any(sapply(initial_c, is.list))) {
 		initial_c <- list(initial_c)
 	}
@@ -61,8 +62,8 @@ sir <- function(site_data,
 	#=================================================================================
 	Lkhood <- NULL
 	Lkhood_list <- list()
-	
 	for(site_n in 1:length(site_data)) {
+		# Begin parallel
 		ncores=parallel::detectCores()-2
 		cl=parallel::makeCluster(ncores)
 		doParallel::registerDoParallel(cl)
@@ -84,7 +85,10 @@ sir <- function(site_data,
 																	init_passive = initial_c[[site_n]]$init_passive,
 																	i)
 		stopCluster(cl)
+		# End parallel
 		Lkhood_list[[site_n]] <- Lkhood
+		# Status
+		print(paste0("sir: site ", site_n, "/", length(site_data), " (sample_size = ",sample_size,", resample_size = ",resample_size,")"))
 	}
 	
 	Lkhood1 <- Lkhood_list %>%

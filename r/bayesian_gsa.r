@@ -113,10 +113,10 @@ gsa <- function(site_data,
 	Lkhood_list <- list()
 	
 	for(site_n in 1:length(site_data)) {
+		# Begin parallel
 		ncores=parallel::detectCores()-2
 		cl=parallel::makeCluster(ncores)
 		doParallel::registerDoParallel(cl)
-		
 		Lkhood=foreach(i=1:nrow(X), 
 									 .combine = rbind, 
 									 .packages = c("parallel", 
@@ -134,16 +134,11 @@ gsa <- function(site_data,
 																	init_passive = initial_c[[site_n]]$init_passive,
 																	i)
 		stopCluster(cl)
+		# End parallel
 		Lkhood_list[[site_n]] <- Lkhood
+		# Status
 		print(paste0("gsa: site ", site_n, "/", length(site_data), " (sample_size = ",sample_size,")"))
 	}
-	
-	
-	# # code for non-paralleled run (defunct)
-	# Lkhood_list <- list()
-	# for(i in 1:length(params_list)){
-	# 	Lkhood_list[[i]] <- run_ipcct2_calculate_loglik(params_list[[i]])
-	# }
 	
 	Lkhood1 <- Lkhood_list %>%
 		bind_rows %>%

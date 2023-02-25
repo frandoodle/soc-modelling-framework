@@ -31,6 +31,7 @@ source(here::here("r/read_climate_data.r"))
 source(here::here("r/spinup.r"))
 source(here::here("r/bayesian_gsa.r"))
 source(here::here("r/bayesian_sir.r"))
+source(here::here("r/bayesian_validation.r"))
 source(here::here("r/bayesian_uncertainty.r"))
 ```
 
@@ -157,7 +158,7 @@ sensitivity_graph_first <- ggplot(sensitivity_calibration, aes(x = reorder(param
 sensitivity_graph_total <- ggplot(sensitivity_calibration, aes(x = reorder(params, -singsi), y = totsi, ymax=totsi.uci, ymin=totsi.lci))+ 
 	xlab("Parameters") +
 	ylab("Total-Order Sensitivity Index") + 
-	geom_errorbar(width=0.2, size=1, color="black")+
+	geom_errorbar(width=0.2, linewidth=1, color="black")+
 	geom_bar(stat='identity', fill="grey", alpha=0.70) +
 	coord_flip() +
 	theme_bw()
@@ -166,7 +167,7 @@ sensitivity_graph_total <- ggplot(sensitivity_calibration, aes(x = reorder(param
 sensitivity_graph_both <- ggplot(sensitivity_calibration, aes(x = reorder(params, -singsi), y = totsi, ymax=totsi.uci, ymin=totsi.lci)) +
 	geom_bar(aes(y = singsi), stat='identity', fill="black", alpha=0.7)+
 	geom_bar(aes(y = totsi), stat='identity', fill="grey", alpha=0.7)+
-	geom_errorbar(width=0.2, size=1)+
+	geom_errorbar(width=0.2, linewidth=1)+
 	coord_flip() +
 	theme_bw()
 
@@ -251,9 +252,10 @@ validation_calibration <- validation_calibration_prior %>%
 
 ## Graphing validation statistics
 ```{r}
-ggplot(validation_calibration, aes(y=RMSE, x=dist)) +
+validation_violin_graph <- ggplot(validation_calibration, aes(y=RMSE, x=dist)) +
 	geom_violin() +
 	theme_bw()
+ggsave(plot = validation_violin_graph, filename = here(experiment_path,"figures","validation.png"))
 ```
 
 
@@ -281,6 +283,7 @@ readr::write_csv(uncertainty_calibration_posterior$montecarlo, file=paste0(exper
 
 ## Graphing
 ```{r}
+# 1:1 simulated:measured graph
 uncertainty_graph <- ggplot(data = NULL, aes(x=soc_total/10, y=soc_tha*(30/(soil_depth_max_cm - soil_depth_min_cm)))) +
 	geom_point(data=uncertainty_calibration_prior$montecarlo, shape=4, color = "lightgrey") +
 	geom_point(data=uncertainty_calibration_posterior$montecarlo, shape=3, color = "darkgrey") +
@@ -290,6 +293,23 @@ uncertainty_graph <- ggplot(data = NULL, aes(x=soc_total/10, y=soc_tha*(30/(soil
 	theme_bw()
 
 ggsave(plot = uncertainty_graph, filename = here(experiment_path,"figures","uncertainty.png"))
+```
+
+```{r}
+
+ribbon_points <- uncertainty_calibration_posterior$montecarlo %>%
+	group_by(year) %>%
+	select(year, soc_total) %>%
+	summarise(soc_total_max = max(soc_total),
+						soc_total_min = min(soc_total))
+
+ggplot(data = NULL, aes(x=year)) +
+	geom_ribbon(data=ribbon_points, aes(ymax=soc_total_max/10, ymin=soc_total_min/10), fill="grey") +
+	geom_point(data=uncertainty_calibration_posterior$montecarlo, aes(y=soc_tha*(30/(soil_depth_max_cm - soil_depth_min_cm))), color = "black") +
+	geom_line(data=uncertainty_calibration_posterior$median, aes(y=soc_total/10), color = "black") +
+	facet_wrap(treatment_name) +
+	theme_bw()
+
 ```
 
 # Save all code used in this analysis
