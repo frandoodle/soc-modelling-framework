@@ -234,25 +234,29 @@ ggsave(plot = sir_graph, filename = here(experiment_path,"figures","sir.png"))
 ## Calculating Validation statistics
 ```{r}
 validation_calibration_prior <- validation(site_data = calibration_data,
-											 climate_data = climate_data,
-											 initial_c = initial_c_calibration_spinup,
-											 distribution = sir_calibration$prior,
-											 model = "ipcct2") %>%
+																					 climate_data = climate_data,
+																					 initial_c = initial_c_calibration_spinup,
+																					 distribution = sir_calibration$prior,
+																					 simulated_column_name = "soc_total",
+																					 measured_column_name = "soc_tha_30cm",
+																					 model = "ipcct2") %>%
 	mutate(dist = "Prior Calibration")
 validation_calibration_posterior <- validation(site_data = calibration_data,
-											 climate_data = climate_data,
-											 initial_c = initial_c_calibration_spinup,
-											 distribution = sir_calibration$posterior,
-											 model = "ipcct2") %>%
+																							 climate_data = climate_data,
+																							 initial_c = initial_c_calibration_spinup,
+																							 distribution = sir_calibration$posterior,
+																							 simulated_column_name = "soc_total",
+																							 measured_column_name = "soc_tha_30cm",
+																							 model = "ipcct2") %>%
 	mutate(dist = "Posterior Calibration")
 
-validation_calibration <- validation_calibration_prior %>%
-	bind_rows(validation_calibration_posterior)
+validation_calibration <- bind_rows(validation_calibration_prior,
+																		validation_calibration_posterior)
 ```
 
 ## Graphing validation statistics
 ```{r}
-validation_violin_graph <- ggplot(validation_calibration, aes(y=RMSE, x=dist)) +
+validation_violin_graph <- ggplot(validation_calibration, aes(y=rmse, x=dist)) +
 	geom_violin() +
 	theme_bw()
 ggsave(plot = validation_violin_graph, filename = here(experiment_path,"figures","validation.png"))
@@ -262,15 +266,13 @@ ggsave(plot = validation_violin_graph, filename = here(experiment_path,"figures"
 # Uncertainty Analysis
 ```{r}
 uncertainty_calibration_prior <- montecarlo(site_data = calibration_data,
-																			climate_data = climate_data,
-																			initial_c = initial_c_calibration_spinup,
-																			distribution = sir_calibration$prior,
-																			sample_size = 4)
+																						climate_data = climate_data,
+																						initial_c = initial_c_calibration_spinup,
+																						distribution = sir_calibration$prior)
 uncertainty_calibration_posterior <- montecarlo(site_data = calibration_data,
-																			climate_data = climate_data,
-																			initial_c = initial_c_calibration_spinup,
-																			distribution = sir_calibration$posterior,
-																			sample_size = 3)
+																								climate_data = climate_data,
+																								initial_c = initial_c_calibration_spinup,
+																								distribution = sir_calibration$posterior)
 
 # Prior
 readr::write_csv(uncertainty_calibration_prior$median, file=paste0(experiment_path,"/outputs/uncertainty_median_prior.csv"))
@@ -296,18 +298,25 @@ ggsave(plot = uncertainty_graph, filename = here(experiment_path,"figures","unce
 ```
 
 ```{r}
+ribbon_points_posterior <- uncertainty_calibration_posterior$montecarlo %>%
+	group_by(year, treatment_name) %>%
+	select(year, treatment_name, soc_total) %>%
+	summarise(soc_total_max = max(soc_total),
+						soc_total_min = min(soc_total))
 
-ribbon_points <- uncertainty_calibration_posterior$montecarlo %>%
-	group_by(year) %>%
-	select(year, soc_total) %>%
+ribbon_points_prior <- uncertainty_calibration_prior$montecarlo %>%
+	group_by(year, treatment_name) %>%
+	select(year, treatment_name, soc_total) %>%
 	summarise(soc_total_max = max(soc_total),
 						soc_total_min = min(soc_total))
 
 ggplot(data = NULL, aes(x=year)) +
-	geom_ribbon(data=ribbon_points, aes(ymax=soc_total_max/10, ymin=soc_total_min/10), fill="grey") +
+	
+	geom_ribbon(data=ribbon_points_prior, aes(ymax=soc_total_max/10, ymin=soc_total_min/10), fill="lightgrey") +
+	geom_ribbon(data=ribbon_points_posterior, aes(ymax=soc_total_max/10, ymin=soc_total_min/10), fill="darkgrey") +
 	geom_point(data=uncertainty_calibration_posterior$montecarlo, aes(y=soc_tha*(30/(soil_depth_max_cm - soil_depth_min_cm))), color = "black") +
 	geom_line(data=uncertainty_calibration_posterior$median, aes(y=soc_total/10), color = "black") +
-	facet_wrap(treatment_name) +
+	facet_wrap(vars(treatment_name)) +
 	theme_bw()
 
 ```

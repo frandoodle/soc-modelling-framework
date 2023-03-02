@@ -4,6 +4,8 @@ validation <- function(site_data,
 											 climate_data,
 											 initial_c,
 											 distribution,
+											 simulated_column_name,
+											 measured_column_name,
 											 model = "ipcct2")
 {
 	# site_data can either be a data.frame, or a list of data.frames
@@ -49,10 +51,10 @@ validation <- function(site_data,
 			purrr::map(function(x)
 			{
 				a <- x %>%
-					select(year, soc_total, soc_tha_30cm) %>%
+					select(year, all_of(c(simulated_column_name, measured_column_name))) %>%
 					na.omit()
-				b <- validation_calculate_stats(simulated = a$soc_total/10,
-																		 measured = a$soc_tha_30cm)
+				b <- validation_calculate_stats(simulated = a[[simulated_column_name]]/10,
+																		 measured = a[[measured_column_name]])
 				return(b)
 			}) %>%
 			bind_rows
