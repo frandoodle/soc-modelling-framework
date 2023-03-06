@@ -43,7 +43,7 @@ montecarlo <- function(site_data,
 													init_slow = initial_c[[site_n]]$init_slow,
 													init_passive = initial_c[[site_n]]$init_passive,
 													return_site_inputs = TRUE),
-										 parameters))
+										 distribution[parameters,]))
 		stopCluster(cl)
 		# End parallel
 		model_results_list[[site_n]] <- model_results

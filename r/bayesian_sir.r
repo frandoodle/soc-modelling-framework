@@ -62,6 +62,7 @@ sir <- function(site_data,
 	#=================================================================================
 	Lkhood <- NULL
 	Lkhood_list <- list()
+	model_return_list <- list()
 	for(site_n in 1:length(site_data)) {
 		# Begin parallel
 		ncores=parallel::detectCores()-2
@@ -69,7 +70,7 @@ sir <- function(site_data,
 		doParallel::registerDoParallel(cl)
 		
 		Lkhood=foreach(i=1:nrow(X), 
-									 .combine = rbind, 
+									 #.combine = rbind, 
 									 .packages = c("parallel", 
 									 							"doParallel", 
 									 							"tidyverse"),
@@ -83,28 +84,41 @@ sir <- function(site_data,
 																	init_active = initial_c[[site_n]]$init_active,
 																	init_slow = initial_c[[site_n]]$init_slow,
 																	init_passive = initial_c[[site_n]]$init_passive,
-																	i)
+																	parameters = X[i,])
 		stopCluster(cl)
 		# End parallel
-		Lkhood_list[[site_n]] <- Lkhood
+		Lkhood_list[[site_n]] <- Lkhood %>%
+			purrr::map(~.$loglik) %>%
+			bind_rows
+		model_return_list[[site_n]] <- Lkhood %>%
+			purrr::map(~.$model_return) %>%
+			bind_rows
 		# Status
 		print(paste0("sir: site ", site_n, "/", length(site_data), " (sample_size = ",sample_size,", resample_size = ",resample_size,")"))
 	}
 	
 	Lkhood1 <- Lkhood_list %>%
 		bind_rows %>%
+		# Remove invalid values of log-likelihood
 		mutate(loglik = ifelse(loglik == -Inf, NA, loglik)) %>%
 		group_by(id) %>%
 		summarise(loglik = mean(loglik, na.rm=T)) %>%
 		mutate(weights = exp(loglik)/sum(exp(loglik)))
 	
+	
 	#=================================================================================
 	# sample without replacement (a resampling of 1000 were used in Gurung et al., 2020)
 	nsamp <- resample_size 
 	sampIndx <- sample(1:nrow(Lkhood1), 
-										 size = nsamp, replace = FALSE,
+										 size = nsamp,
+										 replace = FALSE,
 										 prob = Lkhood1$weights)
 	PostTheta <- as.data.frame(X[sampIndx,])
 	
-	return(list(prior = X, posterior = PostTheta))
+	model_return_list_posterior <- model_return_list %>%
+		purrr::map(~filter(., SampleID %in% PostTheta$SampleID))
+	
+	return(list(prior = X, posterior = PostTheta,
+							model_return_prior = model_return_list,
+							model_return_posterior = model_return_list_posterior))
 }

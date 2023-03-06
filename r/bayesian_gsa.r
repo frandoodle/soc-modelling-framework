@@ -132,7 +132,7 @@ gsa <- function(site_data,
 																	init_active = initial_c[[site_n]]$init_active,
 																	init_slow = initial_c[[site_n]]$init_slow,
 																	init_passive = initial_c[[site_n]]$init_passive,
-																	i)
+																	parameters = X[i,])
 		stopCluster(cl)
 		# End parallel
 		Lkhood_list[[site_n]] <- Lkhood

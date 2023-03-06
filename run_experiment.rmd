@@ -188,7 +188,7 @@ sir_calibration <- sir(site_data = calibration_data,
 readr::write_csv(sir_calibration$prior, file=paste0(experiment_path,"/outputs/prior.csv"))
 readr::write_csv(sir_calibration$posterior, file=paste0(experiment_path,"/outputs/posterior.csv"))
 
-
+# Find maximum a posteriori (MAP)
 get_map <- function(x) {
 	dens <- x %>%
 		density
@@ -232,6 +232,50 @@ ggsave(plot = sir_graph, filename = here(experiment_path,"figures","sir.png"))
 ## Graphing results
 
 ## Calculating Validation statistics
+```{r}
+sir_calibration$model_return_prior
+
+valid <- sir_calibration$model_return_prior %>%
+	purrr::map(function(x) {
+		
+		y <- x %>%
+			group_by(SampleID) %>%
+			select(SampleID, Exp_ID, location_name, treatment_name, treatment_number, year, soc_total, soc_tha_30cm) %>%
+			na.omit() %>%
+			group_split
+		
+		yy <- y %>%
+			purrr::map(function(data) {
+				identifier <- data %>%
+					select(SampleID, Exp_ID, location_name, treatment_name, treatment_number) %>%
+					unique
+				validation_stocks <- validation_calculate_stats(simulated = data[["soc_total"]]/10,
+																								 measured = data[["soc_tha_30cm"]]) %>%
+					enframe %>%
+					pivot_wider(names_from = name) %>%
+					rename_with(~ paste0(., "_stocks"))
+				data_delta <- data %>%
+					mutate(soc_total_delta = soc_total - first(soc_total),
+								 soc_tha_30cm_delta = soc_tha_30cm - first(soc_tha_30cm))
+				validation_delta <- validation_calculate_stats(simulated = data_delta[["soc_total_delta"]]/10,
+																								 measured = data_delta[["soc_tha_30cm_delta"]]) %>%
+					enframe %>%
+					pivot_wider(names_from = name) %>%
+					rename_with(~ paste0(., "_delta"))
+				
+				return(bind_cols(identifier, validation_stocks, validation_delta))
+			}) %>%
+			bind_rows
+		
+		return(yy)}
+	) %>%
+	bind_rows %>%
+	mutate(dist = "Prior Calibration")
+
+```
+
+
+
 ```{r}
 validation_calibration_prior <- validation(site_data = calibration_data,
 																					 climate_data = climate_data,

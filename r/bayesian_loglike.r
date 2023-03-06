@@ -33,11 +33,13 @@ run_ipcct2_calculate_loglik <- function(site_data,
 	
 	model_actual <- modelled %>%
 		full_join(actuals, by=c("site", "year")) %>%
+		select(site, year, soc_total, actual) %>%
 		filter(!is.na(actual))
 	
 	loglike <- loglik(model_actual$soc_total, model_actual$actual)
 	
-	output <- tibble(id, loglik = loglike)
+	output <- list(model_return = bind_cols(modelled, parameters, site_data),
+								 loglik = tibble(id, loglik = loglike))
 	
 	return(output)
 }
