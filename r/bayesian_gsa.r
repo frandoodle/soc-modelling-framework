@@ -90,7 +90,6 @@ gsa <- function(site_data,
 																								 q.arg = fast99_qargs))
 	
 	X <- si_obj2$X
-	n <- nrow(X)
 	X <- cbind("SampleID" = 1:nrow(X), X)
 	
 	params_list_sorted_names <- c("SampleID",varSI)
@@ -118,7 +117,7 @@ gsa <- function(site_data,
 		cl=parallel::makeCluster(ncores)
 		doParallel::registerDoParallel(cl)
 		Lkhood=foreach(i=1:nrow(X), 
-									 .combine = rbind, 
+									 #.combine = rbind, 
 									 .packages = c("parallel", 
 									 							"doParallel", 
 									 							"tidyverse"),
@@ -135,7 +134,9 @@ gsa <- function(site_data,
 																	parameters = X[i,])
 		stopCluster(cl)
 		# End parallel
-		Lkhood_list[[site_n]] <- Lkhood
+		Lkhood_list[[site_n]] <- Lkhood %>%
+			purrr::map(~.$loglik) %>%
+			bind_rows
 		# Status
 		print(paste0("gsa: site ", site_n, "/", length(site_data), " (sample_size = ",sample_size,")"))
 	}

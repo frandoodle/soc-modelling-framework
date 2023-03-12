@@ -37,22 +37,37 @@ source(here::here("r/bayesian_uncertainty.r"))
 
 Assign experimental parameters:
 ```{r}
-experiment_name <- "test"
+experiment_driver <- "location_name"
+experiment_driver_values <- c("Ellerslie", "Harrow")
 experiment_model <- "ipcct2"
 experiment_time <- Sys.time() %>%
 	format("%Y%m%dT%H%M%S")
 ```
 
+Choose sample sizes for the analysis:
+```{r}
+calibration_sample_size <- 5
+gsa_sample_size <- 3
+sir_sample_size <- 4
+sir_resample_size <- 3
+```
+
 Create folders needed for analysis:
 ```{r}
-experiment_folder <- paste(experiment_name, experiment_time,  sep="_")
+experiment_driver_sanitized <- gsub("[^A-Za-z0-9 ]","", experiment_driver)
+experiment_driver_values_sanitized <- gsub("[^A-Za-z0-9 ]","",experiment_driver_values)
+
+experiment_name <- paste0(c(experiment_driver_sanitized, experiment_driver_values_sanitized), collapse = "-")
+
+experiment_folder <- paste0(experiment_name, "_", experiment_time, "_", "gsa", gsa_sample_size, "_", "sir", sir_sample_size, "-", sir_resample_size)
 experiment_path <- here("results", experiment_model, experiment_folder)
 
 dir.create(here(experiment_path))
-dir.create(here(experiment_path, "code"))
-dir.create(here(experiment_path, "figures"))
 dir.create(here(experiment_path, "inputs"))
-dir.create(here(experiment_path, "outputs"))
+dir.create(here(experiment_path, "gsa"))
+dir.create(here(experiment_path, "sir"))
+dir.create(here(experiment_path, "validation"))
+dir.create(here(experiment_path, "uncertainty"))
 ```
 
 
@@ -69,21 +84,39 @@ site_data <- readr::read_csv(here("data","all_experiments_dummy.csv")) %>%
 	mutate(tillage = ifelse(is.na(tillage), "CT", tillage))
 
 # Save to file
-readr::write_csv(site_data, file=paste0(experiment_path,"/inputs/site_data.csv"))
+readr::write_csv(site_data, file=here(experiment_path,"inputs", "site_data.csv"))
+```
+
+## Only select data associated with the driver:
+```{r}
+site_data_driver <- site_data %>%
+	filter(.data[[experiment_driver]] %in% experiment_driver_values)
+
+# Save to file
+site_data_driver %>%
+	readr::write_csv(file=here(experiment_path,"inputs","site_data_driver.csv"))
 ```
 
 
 ## Split the data into calibration and validation sets:
 ```{r}
-calibration_data <- site_data %>%
-	filter(location_name %in% c("Ellerslie", "Harrow")) %>%
+site_data_driver_n <- site_data_driver %>%
 	group_by(location_name, treatment_name, replication_number) %>%
-	group_split
-calibration_data <- calibration_data[1:5]
-validation_data <- site_data %>%
-	filter(!location_name %in% c("Ellerslie", "Harrow")) %>%
+	n_groups
+
+calibration_sample_indices <- sample.int(site_data_driver_n, calibration_sample_size)
+validation_sample_indices <- setdiff(1:site_data_driver_n, calibration_sample_indices)
+
+
+calibration_data <- site_data_driver %>%
 	group_by(location_name, treatment_name, replication_number) %>%
-	group_split
+	group_split %>%
+	`[`(calibration_sample_indices)
+
+validation_data <- site_data_driver %>%
+	group_by(location_name, treatment_name, replication_number) %>%
+	group_split %>%
+	`[`(validation_sample_indices)
 
 # Save to file
 calibration_data %>%
@@ -132,15 +165,33 @@ initial_c_calibration_spinup <- map2(.x = calibration_data_spinup,
 
 # Sensitivity Analysis
 ```{r}
-sensitivity_calibration <- gsa(site_data = calibration_data,
-															 climate_data = climate_data,
-															 initial_c = initial_c_calibration_spinup,
-															 parameter_bounds = param_bounds,
-															 sample_size = 3,
-															 method = "soboljansen")
+sensitivity_calibration_sj <- gsa(site_data = calibration_data,
+																	climate_data = climate_data,
+																	initial_c = initial_c_calibration_spinup,
+																	parameter_bounds = param_bounds,
+																	sample_size = gsa_sample_size,
+																	method = "soboljansen")
+
+sensitivity_calibration_f99 <- gsa(site_data = calibration_data,
+																	 climate_data = climate_data,
+																	 initial_c = initial_c_calibration_spinup,
+																	 parameter_bounds = param_bounds,
+																	 sample_size = gsa_sample_size,
+																	 method = "fast99")
 
 # Save to file
-readr::write_csv(sensitivity_calibration, file=here(experiment_path,"outputs","sensitivity.csv"))
+sensitivity_calibration_sj %>%
+	mutate(driver = experiment_driver,
+				 value = paste(experiment_driver_values, collapse=","),
+				 n = gsa_sample_size) %>%
+	readr::write_csv(file=here(experiment_path,"gsa","sj.csv"))
+
+# Save to file
+sensitivity_calibration_f99 %>%
+	mutate(driver = experiment_driver,
+				 value = paste(experiment_driver_values, collapse=","),
+				 n = gsa_sample_size) %>%
+	readr::write_csv(file=here(experiment_path,"gsa","f99.csv"))
 ```
 
 ## Graphing:
@@ -171,9 +222,9 @@ sensitivity_graph_both <- ggplot(sensitivity_calibration, aes(x = reorder(params
 	coord_flip() +
 	theme_bw()
 
-ggsave(plot = sensitivity_graph_first, filename = here(experiment_path,"figures","sensitivity_first.png"))
-ggsave(plot = sensitivity_graph_total, filename = here(experiment_path,"figures","sensitivity_total.png"))
-ggsave(plot = sensitivity_graph_both, filename = here(experiment_path,"figures","sensitivity_both.png"))
+ggsave(plot = sensitivity_graph_first, filename = here(experiment_path,"gsa","first.png"))
+ggsave(plot = sensitivity_graph_total, filename = here(experiment_path,"gsa","total.png"))
+ggsave(plot = sensitivity_graph_both, filename = here(experiment_path,"gsa","both.png"))
 ```
 
 # Sampling Importance Resampling (SIR)
@@ -182,11 +233,11 @@ sir_calibration <- sir(site_data = calibration_data,
 											 climate_data = climate_data,
 											 initial_c = initial_c_calibration_spinup,
 											 parameter_bounds = param_bounds,
-											 sample_size = 4,
-											 resample_size = 3)
+											 sample_size = sir_sample_size,
+											 resample_size = sir_resample_size)
 
-readr::write_csv(sir_calibration$prior, file=paste0(experiment_path,"/outputs/prior.csv"))
-readr::write_csv(sir_calibration$posterior, file=paste0(experiment_path,"/outputs/posterior.csv"))
+readr::write_csv(sir_calibration$prior, file=here(experiment_path, "sir", "prior.csv"))
+readr::write_csv(sir_calibration$posterior, file=here(experiment_path, "sir", "posterior.csv"))
 
 # Find maximum a posteriori (MAP)
 get_map <- function(x) {
@@ -205,7 +256,12 @@ sir_table <- sir_calibration$posterior %>%
 						`97.5%` = quantile(value, probs = 0.975),
 						map = get_map(value))
 
-readr::write_csv(sir_table, file=paste0(experiment_path,"/outputs/sir_summary.csv"))
+sir_table %>%
+	mutate(driver = experiment_driver,
+				 value = paste(experiment_driver_values, collapse=","),
+				 n_sample = sir_sample_size,
+				 n_resample = sir_resample_size) %>%
+	readr::write_csv(file= here(experiment_path,"sir","summary.csv"))
 ```
 
 ## Graphing:
@@ -224,86 +280,36 @@ sir_graph <- ggplot() +
 				axis.title.x=element_blank(),panel.grid.minor = element_blank()) +
 	scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0))
 
-ggsave(plot = sir_graph, filename = here(experiment_path,"figures","sir.png"))
+ggsave(plot = sir_graph, filename = here(experiment_path,"sir","sir.png"))
 ```
 
 # Validation
 
 ## Graphing results
 
+
 ## Calculating Validation statistics
 ```{r}
-sir_calibration$model_return_prior
-
-valid <- sir_calibration$model_return_prior %>%
-	purrr::map(function(x) {
-		
-		y <- x %>%
-			group_by(SampleID) %>%
-			select(SampleID, Exp_ID, location_name, treatment_name, treatment_number, year, soc_total, soc_tha_30cm) %>%
-			na.omit() %>%
-			group_split
-		
-		yy <- y %>%
-			purrr::map(function(data) {
-				identifier <- data %>%
-					select(SampleID, Exp_ID, location_name, treatment_name, treatment_number) %>%
-					unique
-				validation_stocks <- validation_calculate_stats(simulated = data[["soc_total"]]/10,
-																								 measured = data[["soc_tha_30cm"]]) %>%
-					enframe %>%
-					pivot_wider(names_from = name) %>%
-					rename_with(~ paste0(., "_stocks"))
-				data_delta <- data %>%
-					mutate(soc_total_delta = soc_total - first(soc_total),
-								 soc_tha_30cm_delta = soc_tha_30cm - first(soc_tha_30cm))
-				validation_delta <- validation_calculate_stats(simulated = data_delta[["soc_total_delta"]]/10,
-																								 measured = data_delta[["soc_tha_30cm_delta"]]) %>%
-					enframe %>%
-					pivot_wider(names_from = name) %>%
-					rename_with(~ paste0(., "_delta"))
-				
-				return(bind_cols(identifier, validation_stocks, validation_delta))
-			}) %>%
-			bind_rows
-		
-		return(yy)}
-	) %>%
+validation_calibration_prior <- sir_calibration$model_return_prior %>%
+	purrr::map(~validation(.)$validation) %>%
 	bind_rows %>%
 	mutate(dist = "Prior Calibration")
 
-```
-
-
-
-```{r}
-validation_calibration_prior <- validation(site_data = calibration_data,
-																					 climate_data = climate_data,
-																					 initial_c = initial_c_calibration_spinup,
-																					 distribution = sir_calibration$prior,
-																					 simulated_column_name = "soc_total",
-																					 measured_column_name = "soc_tha_30cm",
-																					 model = "ipcct2") %>%
-	mutate(dist = "Prior Calibration")
-validation_calibration_posterior <- validation(site_data = calibration_data,
-																							 climate_data = climate_data,
-																							 initial_c = initial_c_calibration_spinup,
-																							 distribution = sir_calibration$posterior,
-																							 simulated_column_name = "soc_total",
-																							 measured_column_name = "soc_tha_30cm",
-																							 model = "ipcct2") %>%
+validation_calibration_posterior <- sir_calibration$model_return_posterior %>%
+	purrr::map(~validation(.)$validation) %>%
+	bind_rows %>%
 	mutate(dist = "Posterior Calibration")
 
-validation_calibration <- bind_rows(validation_calibration_prior,
-																		validation_calibration_posterior)
+validation_calibration <- bind_rows(validation_calibration_prior, validation_calibration_posterior)
+
 ```
 
 ## Graphing validation statistics
 ```{r}
-validation_violin_graph <- ggplot(validation_calibration, aes(y=rmse, x=dist)) +
+validation_violin_graph <- ggplot(validation_calibration, aes(y=rmse_stocks, x=dist)) +
 	geom_violin() +
 	theme_bw()
-ggsave(plot = validation_violin_graph, filename = here(experiment_path,"figures","validation.png"))
+ggsave(plot = validation_violin_graph, filename = here(experiment_path,"validation","validation.png"))
 ```
 
 
@@ -319,12 +325,12 @@ uncertainty_calibration_posterior <- montecarlo(site_data = calibration_data,
 																								distribution = sir_calibration$posterior)
 
 # Prior
-readr::write_csv(uncertainty_calibration_prior$median, file=paste0(experiment_path,"/outputs/uncertainty_median_prior.csv"))
-readr::write_csv(uncertainty_calibration_prior$montecarlo, file=paste0(experiment_path,"/outputs/uncertainty_montecarlo_prior.csv"))
+readr::write_csv(uncertainty_calibration_prior$median, file=here(experiment_path,"uncertainty", "median_prior.csv"))
+readr::write_csv(uncertainty_calibration_prior$montecarlo, file=here(experiment_path,"uncertainty", "montecarlo_prior.csv"))
 
 # Posterior
-readr::write_csv(uncertainty_calibration_posterior$median, file=paste0(experiment_path,"/outputs/uncertainty_median_posterior.csv"))
-readr::write_csv(uncertainty_calibration_posterior$montecarlo, file=paste0(experiment_path,"/outputs/uncertainty_montecarlo_posterior.csv"))
+readr::write_csv(uncertainty_calibration_posterior$median, file=here(experiment_path,"uncertainty", "median_posterior.csv"))
+readr::write_csv(uncertainty_calibration_posterior$montecarlo, file=here(experiment_path,"uncertainty", "montecarlo_posterior.csv"))
 ```
 
 ## Graphing
@@ -338,7 +344,7 @@ uncertainty_graph <- ggplot(data = NULL, aes(x=soc_total/10, y=soc_tha*(30/(soil
 	coord_fixed(ratio = 1, xlim = c(0,400), ylim = c(0,400), expand = TRUE, clip="off") +
 	theme_bw()
 
-ggsave(plot = uncertainty_graph, filename = here(experiment_path,"figures","uncertainty.png"))
+ggsave(plot = uncertainty_graph, filename = here(experiment_path,"uncertainty","uncertainty.png"))
 ```
 
 ```{r}
@@ -364,13 +370,6 @@ ggplot(data = NULL, aes(x=year)) +
 	theme_bw()
 
 ```
-
-# Save all code used in this analysis
-```{r}
-ls()
-objects()
-```
-
 
 
 

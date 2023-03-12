@@ -4,8 +4,10 @@ validation_calculate_stats <- function(simulated, measured) {
 	# 				 normalized RMSE (NRMSE), and Nash-Sutcliffe Efficiency (NSE)
 	
 	# Root mean square error (RMSE)
-	P <- simulated
-	O <- measured
+	P <- simulated %>%
+		na.omit()
+	O <- measured %>%
+		na.omit()
 	PminusO <- P - O
 	PminusOsquared <- PminusO^2
 	PminusOsquaredsums <- sum(PminusOsquared)
