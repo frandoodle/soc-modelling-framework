@@ -67,7 +67,7 @@ gsa <- function(site_data,
 	names(X1) <- varSI
 	names(X2) <- varSI
 	
-	# choose a sensitivity method of your choice from the sensitivity package in R.
+	# choose a sensitivity method from the sensitivity package in R.
 	# see documentation for available options.
 	if(method == "fast99") {
 		fast99_qargs <- paramBounds %>%
@@ -91,6 +91,9 @@ gsa <- function(site_data,
 	
 	X <- si_obj2$X
 	X <- cbind("SampleID" = 1:nrow(X), X)
+	# NaN values can be in X if sample size was too small.
+	if(any(is.nan(unlist(X))))
+	{warning("gsa: NaN values detected in sensitivity analysis. Try increasing sample_size")}
 	
 	params_list_sorted_names <- c("SampleID",varSI)
 	params_list <- X %>%

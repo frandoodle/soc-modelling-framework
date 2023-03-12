@@ -46,10 +46,10 @@ experiment_time <- Sys.time() %>%
 
 Choose sample sizes for the analysis:
 ```{r}
-calibration_sample_size <- 5
-gsa_sample_size <- 3
-sir_sample_size <- 4
-sir_resample_size <- 3
+calibration_sample_percentage <- 7
+gsa_sample_size <- 100
+sir_sample_size <- 1000
+sir_resample_size <- 100
 ```
 
 Create folders needed for analysis:
@@ -87,9 +87,18 @@ site_data <- readr::read_csv(here("data","all_experiments_dummy.csv")) %>%
 readr::write_csv(site_data, file=here(experiment_path,"inputs", "site_data.csv"))
 ```
 
+## Remove sites where there are no measured values
+```{r}
+site_data_filtered <- site_data %>%
+	group_by(location_name, treatment_name, replication_number) %>%
+	filter(!any(is.na(soc_tha_30cm)))
+
+```
+
+
 ## Only select data associated with the driver:
 ```{r}
-site_data_driver <- site_data %>%
+site_data_driver <- site_data_filtered %>%
 	filter(.data[[experiment_driver]] %in% experiment_driver_values)
 
 # Save to file
@@ -104,7 +113,7 @@ site_data_driver_n <- site_data_driver %>%
 	group_by(location_name, treatment_name, replication_number) %>%
 	n_groups
 
-calibration_sample_indices <- sample.int(site_data_driver_n, calibration_sample_size)
+calibration_sample_indices <- sample.int(site_data_driver_n, ceiling(site_data_driver_n * calibration_sample_percentage/100))
 validation_sample_indices <- setdiff(1:site_data_driver_n, calibration_sample_indices)
 
 
@@ -135,7 +144,7 @@ climate_data <- read_climate_data(climate_data_directory = here("data","climate_
 readr::write_csv(climate_data, file=here(experiment_path,"inputs","climate_data.csv"))
 ```
 
-## Parameter ranges that are used for sensitivity analysis and bayesian calibration:
+## Parameter ranges used in sensitivity analysis and bayesian calibration:
 ```{r}
 param_bounds <- read.csv(here("data","ipcct2_parameters_gsa.csv"), stringsAsFactors = FALSE)
 
@@ -165,20 +174,13 @@ initial_c_calibration_spinup <- map2(.x = calibration_data_spinup,
 
 # Sensitivity Analysis
 ```{r}
+# Sobol-Jansen'
 sensitivity_calibration_sj <- gsa(site_data = calibration_data,
 																	climate_data = climate_data,
 																	initial_c = initial_c_calibration_spinup,
 																	parameter_bounds = param_bounds,
 																	sample_size = gsa_sample_size,
 																	method = "soboljansen")
-
-sensitivity_calibration_f99 <- gsa(site_data = calibration_data,
-																	 climate_data = climate_data,
-																	 initial_c = initial_c_calibration_spinup,
-																	 parameter_bounds = param_bounds,
-																	 sample_size = gsa_sample_size,
-																	 method = "fast99")
-
 # Save to file
 sensitivity_calibration_sj %>%
 	mutate(driver = experiment_driver,
@@ -186,6 +188,13 @@ sensitivity_calibration_sj %>%
 				 n = gsa_sample_size) %>%
 	readr::write_csv(file=here(experiment_path,"gsa","sj.csv"))
 
+# Fast99
+sensitivity_calibration_f99 <- gsa(site_data = calibration_data,
+																	 climate_data = climate_data,
+																	 initial_c = initial_c_calibration_spinup,
+																	 parameter_bounds = param_bounds,
+																	 sample_size = gsa_sample_size,
+																	 method = "fast99")
 # Save to file
 sensitivity_calibration_f99 %>%
 	mutate(driver = experiment_driver,
@@ -286,7 +295,37 @@ ggsave(plot = sir_graph, filename = here(experiment_path,"sir","sir.png"))
 # Validation
 
 ## Graphing results
+```{r}
+stocks_calibration_prior <- sir_calibration$model_return_prior %>%
+	purrr::map(~validation(.)$stocks) %>%
+	bind_rows
 
+stocks_calibration_prior_soc_graph <- ggplot(stocks_calibration_prior, aes(x = year)) +
+	geom_point(aes(y = soc_total)) +
+	geom_point(aes(y = soc_tha_30cm), color="red") +
+	facet_wrap(vars(treatment_name)) +
+	ylab("SOC (t/ha)") +
+	theme_bw()
+ggsave(plot = stocks_calibration_prior_soc_graph, filename = here(experiment_path,"validation","stocks_calibration_prior_soc.png"))
+
+stocks_calibration_prior_soc_delta_cumulative_graph <- ggplot(stocks_calibration_prior, aes(x = year)) +
+	geom_point(aes(y = soc_total_delta_cumulative)) +
+	geom_point(aes(y = soc_tha_30cm_delta_cumulative), color="red") +
+	facet_wrap(vars(treatment_name)) +
+	ylab("ΔSOC (t/ha)") +
+	theme_bw()
+ggsave(plot = stocks_calibration_prior_soc_delta_cumulative_graph, filename = here(experiment_path,"validation","stocks_calibration_prior_soc_delta_cumulative.png"))
+
+
+stocks_calibration_prior_soc_delta_progressive_graph <- ggplot(stocks_calibration_prior, aes(x = year)) +
+	geom_point(aes(y = soc_total_delta_progressive)) +
+	geom_point(aes(y = soc_tha_30cm_delta_progressive), color="red") +
+	facet_wrap(vars(treatment_name)) +
+	ylab("Year-by-year ΔSOC (t/ha)") +
+	theme_bw()
+ggsave(plot = stocks_calibration_prior_soc_delta_progressive_graph, filename = here(experiment_path,"validation","stocks_calibration_prior_soc_delta_progressive.png"))
+
+```
 
 ## Calculating Validation statistics
 ```{r}
@@ -300,12 +339,15 @@ validation_calibration_posterior <- sir_calibration$model_return_posterior %>%
 	bind_rows %>%
 	mutate(dist = "Posterior Calibration")
 
-validation_calibration <- bind_rows(validation_calibration_prior, validation_calibration_posterior)
-
+# Save to file
+readr::write_csv(validation_calibration_prior, file = here(experiment_path,"validation","validation_calibration_prior.csv"))
+readr::write_csv(validation_calibration_posterior, file = here(experiment_path,"validation","validation_calibration_posterior.csv"))
 ```
 
 ## Graphing validation statistics
 ```{r}
+validation_calibration <- bind_rows(validation_calibration_prior, validation_calibration_posterior)
+
 validation_violin_graph <- ggplot(validation_calibration, aes(y=rmse_stocks, x=dist)) +
 	geom_violin() +
 	theme_bw()
@@ -324,10 +366,10 @@ uncertainty_calibration_posterior <- montecarlo(site_data = calibration_data,
 																								initial_c = initial_c_calibration_spinup,
 																								distribution = sir_calibration$posterior)
 
+# Write to file
 # Prior
 readr::write_csv(uncertainty_calibration_prior$median, file=here(experiment_path,"uncertainty", "median_prior.csv"))
 readr::write_csv(uncertainty_calibration_prior$montecarlo, file=here(experiment_path,"uncertainty", "montecarlo_prior.csv"))
-
 # Posterior
 readr::write_csv(uncertainty_calibration_posterior$median, file=here(experiment_path,"uncertainty", "median_posterior.csv"))
 readr::write_csv(uncertainty_calibration_posterior$montecarlo, file=here(experiment_path,"uncertainty", "montecarlo_posterior.csv"))

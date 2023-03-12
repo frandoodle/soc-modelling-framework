@@ -16,9 +16,13 @@ validation <- function(model_return)
 							 soc_tha_30cm_delta_cumulative = soc_tha_30cm - first(soc_tha_30cm),
 							 
 							 soc_total_delta_progressive = soc_total - lag(soc_total),
-							 soc_tha_30cm_delta_progressive = soc_tha_30cm - lag(soc_tha_30cm))
+							 soc_tha_30cm_delta_progressive = soc_tha_30cm - lag(soc_tha_30cm)) %>%
+				# Set the first value for each delta soc column to NA so they aren't included in validation
+		mutate(soc_total_delta_cumulative = ifelse(row_number() == 1, NA,soc_total_delta_cumulative),
+					 soc_tha_30cm_delta_cumulative = ifelse(row_number() == 1, NA,soc_tha_30cm_delta_cumulative),
+					 soc_total_delta_progressive = ifelse(row_number() == 1, NA,soc_total_delta_progressive),
+					 soc_tha_30cm_delta_progressive = ifelse(row_number() == 1, NA,soc_tha_30cm_delta_progressive))
 		})
-	
 	yyy <- yy %>%
 		purrr::map(function(data) {
 			identifier <- data %>%
@@ -31,14 +35,13 @@ validation <- function(model_return)
 				pivot_wider(names_from = name) %>%
 				rename_with(~ paste0(., "_stocks"))
 			
-			# We use [-1] here to exclude the first row for delta columns, which should not be included in validaiton
-			validation_delta_cumulative <- validation_calculate_stats(simulated = data_delta[["soc_total_delta_cumulative"]][-1]/10,
-																																measured = data_delta[["soc_tha_30cm_delta_cumulative"]][-1]) %>%
+			validation_delta_cumulative <- validation_calculate_stats(simulated = data_delta[["soc_total_delta_cumulative"]]/10,
+																																measured = data_delta[["soc_tha_30cm_delta_cumulative"]]) %>%
 				enframe %>%
 				pivot_wider(names_from = name) %>%
 				rename_with(~ paste0(., "_delta_cumulative"))
-			validation_delta_progressive <- validation_calculate_stats(simulated = data_delta[["soc_total_delta_progressive"]][-1]/10,
-																																 measured = data_delta[["soc_tha_30cm_delta_progressive"]][-1]) %>%
+			validation_delta_progressive <- validation_calculate_stats(simulated = data_delta[["soc_total_delta_progressive"]]/10,
+																																 measured = data_delta[["soc_tha_30cm_delta_progressive"]]) %>%
 				enframe %>%
 				pivot_wider(names_from = name) %>%
 				rename_with(~ paste0(., "_delta_progressive"))
