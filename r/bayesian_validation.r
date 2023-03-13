@@ -35,13 +35,13 @@ validation <- function(model_return)
 				pivot_wider(names_from = name) %>%
 				rename_with(~ paste0(., "_stocks"))
 			
-			validation_delta_cumulative <- validation_calculate_stats(simulated = data_delta[["soc_total_delta_cumulative"]]/10,
-																																measured = data_delta[["soc_tha_30cm_delta_cumulative"]]) %>%
+			validation_delta_cumulative <- validation_calculate_stats(simulated = data[["soc_total_delta_cumulative"]]/10,
+																																measured = data[["soc_tha_30cm_delta_cumulative"]]) %>%
 				enframe %>%
 				pivot_wider(names_from = name) %>%
 				rename_with(~ paste0(., "_delta_cumulative"))
-			validation_delta_progressive <- validation_calculate_stats(simulated = data_delta[["soc_total_delta_progressive"]]/10,
-																																 measured = data_delta[["soc_tha_30cm_delta_progressive"]]) %>%
+			validation_delta_progressive <- validation_calculate_stats(simulated = data[["soc_total_delta_progressive"]]/10,
+																																 measured = data[["soc_tha_30cm_delta_progressive"]]) %>%
 				enframe %>%
 				pivot_wider(names_from = name) %>%
 				rename_with(~ paste0(., "_delta_progressive"))

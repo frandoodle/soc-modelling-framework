@@ -38,7 +38,8 @@ gsa <- function(site_data,
 	
 	# read prior distribution from a csv file
 	# (Required columns: Parameter, value, lower, upper)
-	paramBounds <- parameter_bounds
+	paramBounds <- parameter_bounds %>%
+		arrange(Parameter)
 	
 	# names of parameters that are allowed to vary
 	varSI       <- paramBounds$Parameter
@@ -92,8 +93,7 @@ gsa <- function(site_data,
 	X <- si_obj2$X
 	X <- cbind("SampleID" = 1:nrow(X), X)
 	# NaN values can be in X if sample size was too small.
-	if(any(is.nan(unlist(X))))
-	{warning("gsa: NaN values detected in sensitivity analysis. Try increasing sample_size")}
+	if(any(is.nan(unlist(X)))) {warning("gsa: NaN values detected in sensitivity analysis. Try increasing sample_size")}
 	
 	params_list_sorted_names <- c("SampleID",varSI)
 	params_list <- X %>%
@@ -156,11 +156,11 @@ gsa <- function(site_data,
 	{
 		# Calculate First-order and Total global sensitivity indices
 		singleSI <- si_obj2_llkhd$S %>%
-			select(singsi = original, singsi.lci = `min. c.i.`, singsi.uci = `max. c.i.`) %>%
+			select(singsi = original, singsi_lci = `min. c.i.`, singsi_uci = `max. c.i.`) %>%
 			rownames_to_column("params") %>%
 			as_tibble()
 		totalSI <- si_obj2_llkhd$T %>%
-			select(totsi = original, totsi.lci = `min. c.i.`, totsi.uci = `max. c.i.`) %>%
+			select(totsi = original, totsi_lci = `min. c.i.`, totsi_uci = `max. c.i.`) %>%
 			rownames_to_column("params") %>%
 			as_tibble()
 		

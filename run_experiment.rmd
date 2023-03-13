@@ -48,8 +48,8 @@ Choose sample sizes for the analysis:
 ```{r}
 calibration_sample_percentage <- 7
 gsa_sample_size <- 100
-sir_sample_size <- 1000
-sir_resample_size <- 100
+sir_sample_size <- 4
+sir_resample_size <- 3
 ```
 
 Create folders needed for analysis:
@@ -59,7 +59,7 @@ experiment_driver_values_sanitized <- gsub("[^A-Za-z0-9 ]","",experiment_driver_
 
 experiment_name <- paste0(c(experiment_driver_sanitized, experiment_driver_values_sanitized), collapse = "-")
 
-experiment_folder <- paste0(experiment_name, "_", experiment_time, "_", "gsa", gsa_sample_size, "_", "sir", sir_sample_size, "-", sir_resample_size)
+experiment_folder <- paste0(experiment_name, "_", experiment_time, "_", "gsa", gsa_sample_size, "_", "sir", sir_sample_size, "-", sir_resample_size, "_", "cal", calibration_sample_percentage)
 experiment_path <- here("results", experiment_model, experiment_folder)
 
 dir.create(here(experiment_path))
@@ -91,7 +91,7 @@ readr::write_csv(site_data, file=here(experiment_path,"inputs", "site_data.csv")
 ```{r}
 site_data_filtered <- site_data %>%
 	group_by(location_name, treatment_name, replication_number) %>%
-	filter(!any(is.na(soc_tha_30cm)))
+	filter(!all(is.na(soc_tha_30cm)))
 
 ```
 
@@ -199,41 +199,88 @@ sensitivity_calibration_f99 <- gsa(site_data = calibration_data,
 sensitivity_calibration_f99 %>%
 	mutate(driver = experiment_driver,
 				 value = paste(experiment_driver_values, collapse=","),
-				 n = gsa_sample_size) %>%
+				 gsa_sample_n = gsa_sample_size) %>%
 	readr::write_csv(file=here(experiment_path,"gsa","f99.csv"))
 ```
 
 ## Graphing:
 ```{r}
-# First-order sensitivity
-sensitivity_graph_first <- ggplot(sensitivity_calibration, aes(x = reorder(params, -singsi), y = singsi, ymax=singsi.uci, ymin=singsi.lci)) + 
-	xlab("Parameters") +
-	ylab("First-Order Sensitivity Index") +
-	geom_errorbar(width=0.2, linewidth=1, color="black") +
-	geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
+# Template
+sensitivity_graph_template <- ggplot(data=NULL) + 
 	coord_flip() +
 	theme_bw()
+
+# Sobol-Jansen
+# First-order sensitivity
+sensitivity_graph_first_sj <- sensitivity_graph_template %+% sensitivity_calibration_sj +
+	aes(x = reorder(params, singsi),
+			y = singsi,
+			ymax=singsi.uci,
+			ymin=singsi.lci) +
+	geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
+	geom_errorbar(width=0.2, linewidth=1, color="black") +
+	ylab("First-Order Sensitivity Index") +
+	xlab("Parameters")
+
 
 # Total order sensitivity
-sensitivity_graph_total <- ggplot(sensitivity_calibration, aes(x = reorder(params, -singsi), y = totsi, ymax=totsi.uci, ymin=totsi.lci))+ 
-	xlab("Parameters") +
-	ylab("Total-Order Sensitivity Index") + 
-	geom_errorbar(width=0.2, linewidth=1, color="black")+
-	geom_bar(stat='identity', fill="grey", alpha=0.70) +
-	coord_flip() +
-	theme_bw()
+sensitivity_graph_total_sj <- sensitivity_graph_template %+% sensitivity_calibration_sj +
+	aes(x = reorder(params, totsi),
+			y = totsi,
+			ymax=totsi.uci,
+			ymin=totsi.lci) +
+	geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
+	geom_errorbar(width=0.2, linewidth=1, color="black") +
+	ylab("Total-Order Sensitivity Index") +
+	xlab("Parameters")
 
 # Both
-sensitivity_graph_both <- ggplot(sensitivity_calibration, aes(x = reorder(params, -singsi), y = totsi, ymax=totsi.uci, ymin=totsi.lci)) +
-	geom_bar(aes(y = singsi), stat='identity', fill="black", alpha=0.7)+
-	geom_bar(aes(y = totsi), stat='identity', fill="grey", alpha=0.7)+
-	geom_errorbar(width=0.2, linewidth=1)+
-	coord_flip() +
-	theme_bw()
+sensitivity_calibration_sj_pivoted <- sensitivity_calibration_sj%>%
+	pivot_longer(c("totsi", "singsi"), names_to = "order", values_to = "index")
 
-ggsave(plot = sensitivity_graph_first, filename = here(experiment_path,"gsa","first.png"))
-ggsave(plot = sensitivity_graph_total, filename = here(experiment_path,"gsa","total.png"))
-ggsave(plot = sensitivity_graph_both, filename = here(experiment_path,"gsa","both.png"))
+sensitivity_graph_both_sj <-  sensitivity_graph_template %+% sensitivity_calibration_sj_pivoted +
+	aes(x = reorder(params, order),
+			y = index) +
+	geom_bar(aes(fill = order), stat='identity', position="dodge", alpha=0.7) +
+	geom_errorbar(aes(ymax=singsi.uci, ymin=singsi.lci), width=0.2, linewidth=1, color="black") +
+	geom_errorbar(aes(ymax=totsi.uci, ymin=totsi.lci), width=0.2, linewidth=1, color="#888888") +
+	ylab("Sensitivity Index") +
+	xlab("Parameters")
+
+# Fast99
+# Main
+sensitivity_graph_main_f99 <- sensitivity_graph_template %+% sensitivity_calibration_f99 +
+	aes(x = reorder(params, main),
+			y = main) + 
+	xlab("Parameters") +
+	ylab("Main Effect Sensitivity Index") +
+	geom_bar(stat='identity', fill="grey", alpha=0.70)
+# Interactions
+sensitivity_graph_interaction_f99 <- sensitivity_graph_template %+% sensitivity_calibration_f99 +
+	aes(x = reorder(params, interactions),
+			y = interactions) + 
+	xlab("Parameters") +
+	ylab("Interaction Effect Sensitivity Index") +
+	geom_bar(stat='identity', fill="grey", alpha=0.70)
+# Both
+sensitivity_calibration_f99_pivoted <- sensitivity_calibration_f99 %>%
+	pivot_longer(c("main", "interactions"), names_to = "order", values_to = "index")
+
+sensitivity_graph_both_f99 <-  sensitivity_graph_template %+% sensitivity_calibration_f99_pivoted +
+	aes(x = reorder(params, index),
+			y = index) +
+	geom_bar(aes(fill = order), stat='identity', position="dodge", alpha=0.7) +
+	ylab("Sensitivity Index") +
+	xlab("Parameters")
+
+# Save to file
+ggsave(plot = sensitivity_graph_first_sj, filename = here(experiment_path,"gsa","sj_first.png"))
+ggsave(plot = sensitivity_graph_total_sj, filename = here(experiment_path,"gsa","sj_total.png"))
+ggsave(plot = sensitivity_graph_both_sj, filename = here(experiment_path,"gsa","sj_both.png"))
+
+ggsave(plot = sensitivity_graph_main_f99, filename = here(experiment_path,"gsa","f99_main.png"))
+ggsave(plot = sensitivity_graph_interaction_f99, filename = here(experiment_path,"gsa","f99_interaction.png"))
+ggsave(plot = sensitivity_graph_both_f99, filename = here(experiment_path,"gsa","f99_both.png"))
 ```
 
 # Sampling Importance Resampling (SIR)
@@ -263,13 +310,14 @@ sir_table <- sir_calibration$posterior %>%
 						median = quantile(value, probs = 0.50),
 						`75%` = quantile(value, probs = 0.75),
 						`97.5%` = quantile(value, probs = 0.975),
-						map = get_map(value))
+						map = get_map(value),
+						mean = mean(value))
 
 sir_table %>%
 	mutate(driver = experiment_driver,
 				 value = paste(experiment_driver_values, collapse=","),
-				 n_sample = sir_sample_size,
-				 n_resample = sir_resample_size) %>%
+				 sir_sample_n = sir_sample_size,
+				 sir_resample_n = sir_resample_size) %>%
 	readr::write_csv(file= here(experiment_path,"sir","summary.csv"))
 ```
 
@@ -332,12 +380,22 @@ ggsave(plot = stocks_calibration_prior_soc_delta_progressive_graph, filename = h
 validation_calibration_prior <- sir_calibration$model_return_prior %>%
 	purrr::map(~validation(.)$validation) %>%
 	bind_rows %>%
-	mutate(dist = "Prior Calibration")
+	mutate(distribution = "prior_calibration",
+				 driver = experiment_driver,
+				 value = paste(experiment_driver_values, collapse=","),
+				 gsa_sample_n = gsa_sample_size,
+				 sir_sample_n = sir_sample_size,
+				 sir_resample_n = sir_resample_size)
 
 validation_calibration_posterior <- sir_calibration$model_return_posterior %>%
 	purrr::map(~validation(.)$validation) %>%
 	bind_rows %>%
-	mutate(dist = "Posterior Calibration")
+	mutate(distribution = "posterior_calibration",
+				 driver = experiment_driver,
+				 value = paste(experiment_driver_values, collapse=","),
+				 gsa_sample_n = gsa_sample_size,
+				 sir_sample_n = sir_sample_size,
+				 sir_resample_n = sir_resample_size)
 
 # Save to file
 readr::write_csv(validation_calibration_prior, file = here(experiment_path,"validation","validation_calibration_prior.csv"))
@@ -348,7 +406,7 @@ readr::write_csv(validation_calibration_posterior, file = here(experiment_path,"
 ```{r}
 validation_calibration <- bind_rows(validation_calibration_prior, validation_calibration_posterior)
 
-validation_violin_graph <- ggplot(validation_calibration, aes(y=rmse_stocks, x=dist)) +
+validation_violin_graph <- ggplot(validation_calibration, aes(y=rmse_stocks, x=distribution)) +
 	geom_violin() +
 	theme_bw()
 ggsave(plot = validation_violin_graph, filename = here(experiment_path,"validation","validation.png"))
@@ -403,7 +461,6 @@ ribbon_points_prior <- uncertainty_calibration_prior$montecarlo %>%
 						soc_total_min = min(soc_total))
 
 ggplot(data = NULL, aes(x=year)) +
-	
 	geom_ribbon(data=ribbon_points_prior, aes(ymax=soc_total_max/10, ymin=soc_total_min/10), fill="lightgrey") +
 	geom_ribbon(data=ribbon_points_posterior, aes(ymax=soc_total_max/10, ymin=soc_total_min/10), fill="darkgrey") +
 	geom_point(data=uncertainty_calibration_posterior$montecarlo, aes(y=soc_tha*(30/(soil_depth_max_cm - soil_depth_min_cm))), color = "black") +
@@ -414,7 +471,10 @@ ggplot(data = NULL, aes(x=year)) +
 ```
 
 
-
+Save the workspace image:
+```{r}
+save.image(file = here(experiment_path,"finished_workspace.RData"))
+```
 
 
 
