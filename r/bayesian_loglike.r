@@ -43,3 +43,65 @@ run_ipcct2_calculate_loglik <- function(site_data,
 	
 	return(output)
 }
+
+run_loglike_parallel <- function(site_data,
+																 climate_data,
+																 initial_c,
+																 parameter_sample)
+{
+	# site_data can either be a data.frame, or a list of data.frames
+	if(!inherits(site_data, "list")) {
+		site_data <- list(site_data)
+	}
+	#initial_c should always be a list of lists
+	if(!any(sapply(initial_c, is.list))) {
+		initial_c <- list(initial_c)
+	}
+	if(length(site_data) != length(initial_c)) {
+		stop("site_data and initial_c cannot be different lengths")
+	}
+	
+	#=================================================================================
+	# Run the model and calculate log-likelihood
+	#    - likelihoods were calculated assuming that the error (modeled - mseasured) are iid 
+	#=================================================================================
+	likelihood <- NULL
+	likelihood_list <- list()
+	model_return_list <- list()
+	for(site_n in 1:length(site_data)) {
+		# Begin parallel
+		ncores=parallel::detectCores()-2
+		cluster=parallel::makeCluster(ncores)
+		doParallel::registerDoParallel(cluster)
+		
+		likelihood=foreach(i=1:nrow(parameter_sample), 
+											 #.combine = rbind, 
+											 .packages = c("parallel", 
+											 							"doParallel", 
+											 							"tidyverse"),
+											 .export = c("run_ipcct2",
+											 						"IPCCTier2SOMmodel",
+											 						"loglik",
+											 						"run_ipcct2_calculate_loglik")) %dopar%
+			
+			run_ipcct2_calculate_loglik(site_data = site_data[[site_n]],
+																	climate_data = climate_data,
+																	init_active = initial_c[[site_n]]$init_active,
+																	init_slow = initial_c[[site_n]]$init_slow,
+																	init_passive = initial_c[[site_n]]$init_passive,
+																	parameters = parameter_sample[i,])
+		stopCluster(cluster)
+		# End parallel
+		likelihood_list[[site_n]] <- likelihood %>%
+			purrr::map(~.$loglik) %>%
+			bind_rows
+		model_return_list[[site_n]] <- likelihood %>%
+			purrr::map(~.$model_return) %>%
+			bind_rows
+		# Status
+		print(paste0("site ", site_n, "/", length(site_data), " (sample_size = ",nrow(parameter_sample),")"))
+	}
+	
+	return(list(likelihood = likelihood_list,
+							model_return = model_return_list))
+}

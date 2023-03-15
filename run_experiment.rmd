@@ -46,8 +46,8 @@ experiment_time <- Sys.time() %>%
 
 Choose sample sizes for the analysis:
 ```{r}
-calibration_sample_percentage <- 7
-gsa_sample_size <- 100
+calibration_sample_percentage <- 10
+gsa_sample_size <- 3
 sir_sample_size <- 4
 sir_resample_size <- 3
 ```
@@ -114,7 +114,7 @@ site_data_driver_n <- site_data_driver %>%
 	n_groups
 
 calibration_sample_indices <- sample.int(site_data_driver_n, ceiling(site_data_driver_n * calibration_sample_percentage/100))
-validation_sample_indices <- setdiff(1:site_data_driver_n, calibration_sample_indices)
+evaluation_sample_indices <- setdiff(1:site_data_driver_n, calibration_sample_indices)
 
 
 calibration_data <- site_data_driver %>%
@@ -122,18 +122,19 @@ calibration_data <- site_data_driver %>%
 	group_split %>%
 	`[`(calibration_sample_indices)
 
-validation_data <- site_data_driver %>%
+evaluation_data <- site_data_driver %>%
 	group_by(location_name, treatment_name, replication_number) %>%
 	group_split %>%
-	`[`(validation_sample_indices)
+	`[`(evaluation_sample_indices) %>%
+	`[`(1:2)
 
 # Save to file
 calibration_data %>%
 	bind_rows() %>%
 	readr::write_csv(file=here(experiment_path,"inputs","site_data_calibration.csv"))
-validation_data %>%
+evaluation_data %>%
 	bind_rows() %>%
-	readr::write_csv(file=here(experiment_path,"inputs","site_data_validation.csv"))
+	readr::write_csv(file=here(experiment_path,"inputs","site_data_evaluation.csv"))
 ```
 
 ## Get climate data:
@@ -185,7 +186,7 @@ sensitivity_calibration_sj <- gsa(site_data = calibration_data,
 sensitivity_calibration_sj %>%
 	mutate(driver = experiment_driver,
 				 value = paste(experiment_driver_values, collapse=","),
-				 n = gsa_sample_size) %>%
+				 gsa_sample_n = gsa_sample_size) %>%
 	readr::write_csv(file=here(experiment_path,"gsa","sj.csv"))
 
 # Fast99
@@ -215,8 +216,8 @@ sensitivity_graph_template <- ggplot(data=NULL) +
 sensitivity_graph_first_sj <- sensitivity_graph_template %+% sensitivity_calibration_sj +
 	aes(x = reorder(params, singsi),
 			y = singsi,
-			ymax=singsi.uci,
-			ymin=singsi.lci) +
+			ymax=singsi_uci,
+			ymin=singsi_lci) +
 	geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
 	geom_errorbar(width=0.2, linewidth=1, color="black") +
 	ylab("First-Order Sensitivity Index") +
@@ -227,8 +228,8 @@ sensitivity_graph_first_sj <- sensitivity_graph_template %+% sensitivity_calibra
 sensitivity_graph_total_sj <- sensitivity_graph_template %+% sensitivity_calibration_sj +
 	aes(x = reorder(params, totsi),
 			y = totsi,
-			ymax=totsi.uci,
-			ymin=totsi.lci) +
+			ymax=totsi_uci,
+			ymin=totsi_lci) +
 	geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
 	geom_errorbar(width=0.2, linewidth=1, color="black") +
 	ylab("Total-Order Sensitivity Index") +
@@ -242,8 +243,8 @@ sensitivity_graph_both_sj <-  sensitivity_graph_template %+% sensitivity_calibra
 	aes(x = reorder(params, order),
 			y = index) +
 	geom_bar(aes(fill = order), stat='identity', position="dodge", alpha=0.7) +
-	geom_errorbar(aes(ymax=singsi.uci, ymin=singsi.lci), width=0.2, linewidth=1, color="black") +
-	geom_errorbar(aes(ymax=totsi.uci, ymin=totsi.lci), width=0.2, linewidth=1, color="#888888") +
+	geom_errorbar(aes(ymax=singsi_uci, ymin=singsi_lci), width=0.2, linewidth=1, color="black") +
+	geom_errorbar(aes(ymax=totsi_uci, ymin=totsi_lci), width=0.2, linewidth=1, color="#888888") +
 	ylab("Sensitivity Index") +
 	xlab("Parameters")
 
@@ -342,55 +343,151 @@ ggsave(plot = sir_graph, filename = here(experiment_path,"sir","sir.png"))
 
 # Validation
 
-## Graphing results
+## Make model returns for evaluation data set
 ```{r}
-stocks_calibration_prior <- sir_calibration$model_return_prior %>%
-	purrr::map(~validation(.)$stocks) %>%
+modelled_evaluation_prior <- run_loglike_parallel(site_data = evaluation_data,
+																									climate_data = climate_data,
+																									initial_c = initial_c_calibration_spinup,
+																									parameter_sample = sir_calibration$prior) %>%
+	`[[`("model_return")
+
+modelled_evaluation_posterior <- run_loglike_parallel(site_data = evaluation_data,
+																											climate_data = climate_data,
+																											initial_c = initial_c_calibration_spinup,
+																											parameter_sample = sir_calibration$posterior) %>%
+	`[[`("model_return")
+```
+
+## Save model runs for each data set
+```{r}
+# Evaluation
+modelled_evaluation_prior %>%
+	bind_rows %>%
+	readr::write_csv(file=here(experiment_path, "validation", "modelled_evaluation_prior.csv"))
+modelled_evaluation_posterior %>%
+	bind_rows %>%
+	readr::write_csv(file=here(experiment_path, "validation", "modelled_evaluation_prior.csv"))
+
+# Calibration
+sir_calibration$model_return_prior %>%
+	bind_rows %>%
+	readr::write_csv(file=here(experiment_path, "validation", "modelled_calibration_prior.csv"))
+sir_calibration$model_return_posterior %>%
+	bind_rows %>%
+	readr::write_csv(file=here(experiment_path, "validation", "modelled_calibration_posterior.csv"))
+```
+
+
+## Graphing SOC and ΔSOC
+```{r}
+# Generic function for building graphs
+make_soc_graphs <- function(model_return_data) 
+{
+	soc_graph <- ggplot(model_return_data, aes(x = year)) +
+		geom_point(aes(y = soc_total)) +
+		geom_point(aes(y = soc_tha_30cm), color="red") +
+		facet_wrap(vars(treatment_name)) +
+		ylab("SOC (t/ha)") +
+		theme_bw()
+	
+	soc_delta_cumulative_graph <- ggplot(model_return_data, aes(x = year)) +
+		geom_point(aes(y = soc_total_delta_cumulative)) +
+		geom_point(aes(y = soc_tha_30cm_delta_cumulative), color="red") +
+		facet_wrap(vars(treatment_name)) +
+		ylab("ΔSOC (t/ha)") +
+		theme_bw()
+	
+	soc_delta_progressive_graph <- ggplot(model_return_data, aes(x = year)) +
+		geom_point(aes(y = soc_total_delta_progressive)) +
+		geom_point(aes(y = soc_tha_30cm_delta_progressive), color="red") +
+		facet_wrap(vars(treatment_name)) +
+		ylab("Year-by-year ΔSOC (t/ha)") +
+		theme_bw()
+	
+	data_name <- deparse(substitute(model_return_data))
+	
+	ggsave(plot = soc_graph, filename = here(experiment_path,"validation",paste0(data_name,"_soc.png")))
+	ggsave(plot = soc_delta_cumulative_graph, filename = here(experiment_path,"validation",paste0(data_name,"_soc_delta_cumulative.png")))
+	ggsave(plot = soc_delta_progressive_graph, filename = here(experiment_path,"validation",paste0(data_name,"_soc_delta_progressive.png")))
+	
+	return(list(
+		soc_graph = soc_graph,
+		soc_delta_cumulative_graph = soc_delta_cumulative_graph,
+		soc_delta_progressive_graph = soc_delta_progressive_graph
+	))
+}
+
+```
+
+
+```{r}
+# Conduct validation on all data sets
+validation_evaluation_prior <- modelled_evaluation_prior %>%
+	purrr::map(validation)
+validation_evaluation_posterior <- modelled_evaluation_posterior %>%
+	purrr::map(validation)
+validation_calibration_prior <- sir_calibration$model_return_prior %>%
+	purrr::map(validation)
+validation_calibration_posterior <- sir_calibration$model_return_posterior %>%
+	purrr::map(validation)
+
+# Get soc and delta soc values
+stocks_evaluation_prior <- validation_evaluation_prior %>%
+	purrr::map(~.[["stocks"]]) %>%
+	bind_rows
+stocks_evaluation_posterior <- validation_evaluation_posterior %>%
+	purrr::map(~.[["stocks"]]) %>%
+	bind_rows
+stocks_calibration_prior <- validation_calibration_prior %>%
+	purrr::map(~.[["stocks"]]) %>%
+	bind_rows
+stocks_calibration_posterior <- validation_calibration_posterior %>%
+	purrr::map(~.[["stocks"]]) %>%
 	bind_rows
 
-stocks_calibration_prior_soc_graph <- ggplot(stocks_calibration_prior, aes(x = year)) +
-	geom_point(aes(y = soc_total)) +
-	geom_point(aes(y = soc_tha_30cm), color="red") +
-	facet_wrap(vars(treatment_name)) +
-	ylab("SOC (t/ha)") +
-	theme_bw()
-ggsave(plot = stocks_calibration_prior_soc_graph, filename = here(experiment_path,"validation","stocks_calibration_prior_soc.png"))
-
-stocks_calibration_prior_soc_delta_cumulative_graph <- ggplot(stocks_calibration_prior, aes(x = year)) +
-	geom_point(aes(y = soc_total_delta_cumulative)) +
-	geom_point(aes(y = soc_tha_30cm_delta_cumulative), color="red") +
-	facet_wrap(vars(treatment_name)) +
-	ylab("ΔSOC (t/ha)") +
-	theme_bw()
-ggsave(plot = stocks_calibration_prior_soc_delta_cumulative_graph, filename = here(experiment_path,"validation","stocks_calibration_prior_soc_delta_cumulative.png"))
-
-
-stocks_calibration_prior_soc_delta_progressive_graph <- ggplot(stocks_calibration_prior, aes(x = year)) +
-	geom_point(aes(y = soc_total_delta_progressive)) +
-	geom_point(aes(y = soc_tha_30cm_delta_progressive), color="red") +
-	facet_wrap(vars(treatment_name)) +
-	ylab("Year-by-year ΔSOC (t/ha)") +
-	theme_bw()
-ggsave(plot = stocks_calibration_prior_soc_delta_progressive_graph, filename = here(experiment_path,"validation","stocks_calibration_prior_soc_delta_progressive.png"))
-
+# Make graphs
+soc_graphs_evaluation_prior <- make_soc_graphs(stocks_evaluation_prior)
+soc_graphs_evaluation_posterior <- make_soc_graphs(stocks_evaluation_posterior)
+soc_graphs_calibration_prior <- make_soc_graphs(stocks_calibration_prior)
+soc_graphs_calibration_posterior <- make_soc_graphs(stocks_calibration_posterior)
 ```
 
 ## Calculating Validation statistics
 ```{r}
-validation_calibration_prior <- sir_calibration$model_return_prior %>%
-	purrr::map(~validation(.)$validation) %>%
+validationstats_evaluation_prior <- validation_evaluation_prior %>%
+	purrr::map(~.[["validation"]]) %>%
 	bind_rows %>%
-	mutate(distribution = "prior_calibration",
+	mutate(distribution = "evaluation_prior",
 				 driver = experiment_driver,
 				 value = paste(experiment_driver_values, collapse=","),
 				 gsa_sample_n = gsa_sample_size,
 				 sir_sample_n = sir_sample_size,
 				 sir_resample_n = sir_resample_size)
 
-validation_calibration_posterior <- sir_calibration$model_return_posterior %>%
-	purrr::map(~validation(.)$validation) %>%
+validationstats_evaluation_posterior <- validation_evaluation_posterior %>%
+	purrr::map(~.[["validation"]]) %>%
 	bind_rows %>%
-	mutate(distribution = "posterior_calibration",
+	mutate(distribution = "evaluation_posterior",
+				 driver = experiment_driver,
+				 value = paste(experiment_driver_values, collapse=","),
+				 gsa_sample_n = gsa_sample_size,
+				 sir_sample_n = sir_sample_size,
+				 sir_resample_n = sir_resample_size)
+
+validationstats_calibration_prior <- validation_calibration_prior %>%
+	purrr::map(~.[["validation"]]) %>%
+	bind_rows %>%
+	mutate(distribution = "calibration_prior",
+				 driver = experiment_driver,
+				 value = paste(experiment_driver_values, collapse=","),
+				 gsa_sample_n = gsa_sample_size,
+				 sir_sample_n = sir_sample_size,
+				 sir_resample_n = sir_resample_size)
+
+validationstats_calibration_posterior <- validation_calibration_posterior %>%
+	purrr::map(~.[["validation"]]) %>%
+	bind_rows %>%
+	mutate(distribution = "calibration_posterior",
 				 driver = experiment_driver,
 				 value = paste(experiment_driver_values, collapse=","),
 				 gsa_sample_n = gsa_sample_size,
@@ -398,18 +495,29 @@ validation_calibration_posterior <- sir_calibration$model_return_posterior %>%
 				 sir_resample_n = sir_resample_size)
 
 # Save to file
-readr::write_csv(validation_calibration_prior, file = here(experiment_path,"validation","validation_calibration_prior.csv"))
-readr::write_csv(validation_calibration_posterior, file = here(experiment_path,"validation","validation_calibration_posterior.csv"))
+readr::write_csv(validationstats_evaluation_prior, file = here(experiment_path,"validation","validation_evaluation_prior.csv"))
+readr::write_csv(validationstats_evaluation_posterior, file = here(experiment_path,"validation","validation_evaluation_posterior.csv"))
+readr::write_csv(validationstats_calibration_prior, file = here(experiment_path,"validation","validation_calibration_prior.csv"))
+readr::write_csv(validationstats_calibration_posterior, file = here(experiment_path,"validation","validation_calibration_posterior.csv"))
 ```
 
 ## Graphing validation statistics
 ```{r}
-validation_calibration <- bind_rows(validation_calibration_prior, validation_calibration_posterior)
+# Evaluation
+validation_evaluation <- bind_rows(validationstats_evaluation_prior, validationstats_evaluation_posterior)
 
-validation_violin_graph <- ggplot(validation_calibration, aes(y=rmse_stocks, x=distribution)) +
+validation_evaluation_violin_graph <- ggplot(validation_evaluation, aes(y=rmse_stocks, x=distribution)) +
 	geom_violin() +
 	theme_bw()
-ggsave(plot = validation_violin_graph, filename = here(experiment_path,"validation","validation.png"))
+ggsave(plot = validation_evaluation_violin_graph, filename = here(experiment_path,"validation","validation_evaluation.png"))
+
+# Calibration
+validation_calibration <- bind_rows(validationstats_calibration_prior, validationstats_calibration_posterior)
+
+validation_calibration_violin_graph <- ggplot(validation_calibration, aes(y=rmse_stocks, x=distribution)) +
+	geom_violin() +
+	theme_bw()
+ggsave(plot = validation_calibration_violin_graph, filename = here(experiment_path,"validation","validation_calibration.png"))
 ```
 
 

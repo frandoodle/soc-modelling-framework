@@ -50,6 +50,6 @@ validation <- function(model_return)
 		}) %>%
 		bind_rows
 	
-	return(list(stocks = yy,
+	return(list(stocks = bind_rows(yy),
 							validation = yyy))
 }
