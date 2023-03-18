@@ -78,19 +78,27 @@ dir.create(here(experiment_path, "uncertainty"))
 # Read SLC polygon IDs
 polyids_all <- readr::read_csv(here("data","climate_data","Documentation", "SLC_PCPTREGION.csv"))
 # Read site data
-site_data <- readr::read_csv(here("data","all_experiments_dummy.csv")) %>%
-	#site_data <- readr::read_csv(here("data/lte_master_beta_dec02.csv")) %>%
+site_data <- readr::read_csv(here("data","LTE_Master_beta_mar15_addedcolumns.csv")) %>%
 	left_join(polyids_all, by=c("latitude" = "Lat", "longitude" = "Long")) %>%
 	mutate(tillage = ifelse(is.na(tillage), "CT", tillage))
 
 # Save to file
 readr::write_csv(site_data, file=here(experiment_path,"inputs", "site_data.csv"))
 ```
+## Add specific site values from lookup tables
+e.g. cinput_lignin_px
+
+## Calculate the SOC at 30cm depth
+```{r}
+site_data_30cm <- site_data %>%
+	mutate(soc_tha_30cm = soc_tha)
+```
+
 
 ## Remove sites where there are no measured values
 ```{r}
-site_data_filtered <- site_data %>%
-	group_by(location_name, treatment_name, replication_number) %>%
+site_data_filtered <- site_data_30cm %>%
+	group_by(TrtID, replication_number) %>%
 	filter(!all(is.na(soc_tha_30cm)))
 
 ```
@@ -110,7 +118,7 @@ site_data_driver %>%
 ## Split the data into calibration and validation sets:
 ```{r}
 site_data_driver_n <- site_data_driver %>%
-	group_by(location_name, treatment_name, replication_number) %>%
+	group_by(TrtID, replication_number) %>%
 	n_groups
 
 calibration_sample_indices <- sample.int(site_data_driver_n, ceiling(site_data_driver_n * calibration_sample_percentage/100))
@@ -118,15 +126,14 @@ evaluation_sample_indices <- setdiff(1:site_data_driver_n, calibration_sample_in
 
 
 calibration_data <- site_data_driver %>%
-	group_by(location_name, treatment_name, replication_number) %>%
+	group_by(TrtID, replication_number) %>%
 	group_split %>%
 	`[`(calibration_sample_indices)
 
 evaluation_data <- site_data_driver %>%
-	group_by(location_name, treatment_name, replication_number) %>%
+	group_by(TrtID, replication_number) %>%
 	group_split %>%
-	`[`(evaluation_sample_indices) %>%
-	`[`(1:2)
+	`[`(evaluation_sample_indices)
 
 # Save to file
 calibration_data %>%
@@ -155,17 +162,35 @@ readr::write_csv(param_bounds, file=here(experiment_path,"inputs","parameter_ran
 
 ## Run spinup:
 ```{r}
+# Calibration
 calibration_data_spinup <- calibration_data %>%
 	map(~slice(., 1:10))
 
 # Get initial C
-initial_c_calibration_measured <- calibration_data %>%
+initial_c_calibration_measured <- calibration_data_spinup %>%
 	map(~.$initial_soc_tha[1]*10) %>%
 	map(~ifelse(is.na(.), 1000, .))
 
 # Run spinup
 initial_c_calibration_spinup <- map2(.x = calibration_data_spinup,
 																		 .y = initial_c_calibration_measured,
+																		 ~spinup(site_data = .x, 
+																		 				climate_data = climate_data,
+																		 				initial_c = .y,
+																		 				model = "ipcct2"))
+
+# Evaluation
+evaluation_data_spinup <- evaluation_data %>%
+	map(~slice(., 1:10))
+
+# Get initial C
+initial_c_evaluation_measured <- evaluation_data %>%
+	map(~.$initial_soc_tha[1]*10) %>%
+	map(~ifelse(is.na(.), 1000, .))
+
+# Run spinup
+initial_c_evaluation_spinup <- map2(.x = evaluation_data_spinup,
+																		 .y = initial_c_evaluation_measured,
 																		 ~spinup(site_data = .x, 
 																		 				climate_data = climate_data,
 																		 				initial_c = .y,
@@ -347,13 +372,13 @@ ggsave(plot = sir_graph, filename = here(experiment_path,"sir","sir.png"))
 ```{r}
 modelled_evaluation_prior <- run_loglike_parallel(site_data = evaluation_data,
 																									climate_data = climate_data,
-																									initial_c = initial_c_calibration_spinup,
+																									initial_c = initial_c_evaluation_spinup,
 																									parameter_sample = sir_calibration$prior) %>%
 	`[[`("model_return")
 
 modelled_evaluation_posterior <- run_loglike_parallel(site_data = evaluation_data,
 																											climate_data = climate_data,
-																											initial_c = initial_c_calibration_spinup,
+																											initial_c = initial_c_evaluation_spinup,
 																											parameter_sample = sir_calibration$posterior) %>%
 	`[[`("model_return")
 ```
