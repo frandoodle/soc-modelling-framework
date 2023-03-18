@@ -47,10 +47,16 @@ experiment_time <- Sys.time() %>%
 Choose sample sizes for the analysis:
 ```{r}
 calibration_sample_percentage <- 10
-gsa_sample_size <- 3
+gsa_sample_size <- 100
 sir_sample_size <- 4
 sir_resample_size <- 3
 ```
+
+Choose how the gsa informs parameter selection for the sir:
+```{r}
+sensitive_parameter_cutoff <- 0.05
+```
+
 
 Create folders needed for analysis:
 ```{r}
@@ -182,8 +188,10 @@ sensitivity_calibration_sj <- gsa(site_data = calibration_data,
 																	parameter_bounds = param_bounds,
 																	sample_size = gsa_sample_size,
 																	method = "soboljansen")
+
 # Save to file
 sensitivity_calibration_sj %>%
+	mutate(sensitive_parameter_cutoff = sensitive_parameter_cutoff) %>%
 	mutate(driver = experiment_driver,
 				 value = paste(experiment_driver_values, collapse=","),
 				 gsa_sample_n = gsa_sample_size) %>%
@@ -196,12 +204,26 @@ sensitivity_calibration_f99 <- gsa(site_data = calibration_data,
 																	 parameter_bounds = param_bounds,
 																	 sample_size = gsa_sample_size,
 																	 method = "fast99")
+
 # Save to file
 sensitivity_calibration_f99 %>%
+	mutate(sensitive_parameter_cutoff = sensitive_parameter_cutoff) %>%
 	mutate(driver = experiment_driver,
 				 value = paste(experiment_driver_values, collapse=","),
 				 gsa_sample_n = gsa_sample_size) %>%
 	readr::write_csv(file=here(experiment_path,"gsa","f99.csv"))
+
+# Get sensitive parameters from gsa results
+sensitive_parameters_sj <- sensitivity_calibration_sj %>%
+	filter(totsi >= sensitive_parameter_cutoff) %>%
+	pull(params)
+
+sensitive_parameters_f99 <- sensitivity_calibration_f99 %>%
+	filter(main >= sensitive_parameter_cutoff) %>%
+	pull(params)
+
+sensitive_parameters_both <- c(sensitive_parameters_sj, sensitive_parameters_f99) %>%
+	unique
 ```
 
 ## Graphing:
@@ -220,6 +242,7 @@ sensitivity_graph_first_sj <- sensitivity_graph_template %+% sensitivity_calibra
 			ymin=singsi_lci) +
 	geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
 	geom_errorbar(width=0.2, linewidth=1, color="black") +
+	geom_hline(yintercept = sensitive_parameter_cutoff, color="red") +
 	ylab("First-Order Sensitivity Index") +
 	xlab("Parameters")
 
@@ -232,6 +255,7 @@ sensitivity_graph_total_sj <- sensitivity_graph_template %+% sensitivity_calibra
 			ymin=totsi_lci) +
 	geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
 	geom_errorbar(width=0.2, linewidth=1, color="black") +
+	geom_hline(yintercept = sensitive_parameter_cutoff, color="red") +
 	ylab("Total-Order Sensitivity Index") +
 	xlab("Parameters")
 
@@ -240,11 +264,12 @@ sensitivity_calibration_sj_pivoted <- sensitivity_calibration_sj%>%
 	pivot_longer(c("totsi", "singsi"), names_to = "order", values_to = "index")
 
 sensitivity_graph_both_sj <-  sensitivity_graph_template %+% sensitivity_calibration_sj_pivoted +
-	aes(x = reorder(params, order),
+	aes(x = reorder(params, index),
 			y = index) +
 	geom_bar(aes(fill = order), stat='identity', position="dodge", alpha=0.7) +
 	geom_errorbar(aes(ymax=singsi_uci, ymin=singsi_lci), width=0.2, linewidth=1, color="black") +
 	geom_errorbar(aes(ymax=totsi_uci, ymin=totsi_lci), width=0.2, linewidth=1, color="#888888") +
+	geom_hline(yintercept = sensitive_parameter_cutoff, color="red") +
 	ylab("Sensitivity Index") +
 	xlab("Parameters")
 
@@ -255,14 +280,17 @@ sensitivity_graph_main_f99 <- sensitivity_graph_template %+% sensitivity_calibra
 			y = main) + 
 	xlab("Parameters") +
 	ylab("Main Effect Sensitivity Index") +
-	geom_bar(stat='identity', fill="grey", alpha=0.70)
+	geom_bar(stat='identity', fill="grey", alpha=0.70) +
+		geom_hline(yintercept = sensitive_parameter_cutoff, color="red")
+
 # Interactions
 sensitivity_graph_interaction_f99 <- sensitivity_graph_template %+% sensitivity_calibration_f99 +
 	aes(x = reorder(params, interactions),
 			y = interactions) + 
 	xlab("Parameters") +
 	ylab("Interaction Effect Sensitivity Index") +
-	geom_bar(stat='identity', fill="grey", alpha=0.70)
+	geom_bar(stat='identity', fill="grey", alpha=0.70) +
+		geom_hline(yintercept = sensitive_parameter_cutoff, color="red")
 # Both
 sensitivity_calibration_f99_pivoted <- sensitivity_calibration_f99 %>%
 	pivot_longer(c("main", "interactions"), names_to = "order", values_to = "index")
@@ -271,6 +299,7 @@ sensitivity_graph_both_f99 <-  sensitivity_graph_template %+% sensitivity_calibr
 	aes(x = reorder(params, index),
 			y = index) +
 	geom_bar(aes(fill = order), stat='identity', position="dodge", alpha=0.7) +
+		geom_hline(yintercept = sensitive_parameter_cutoff, color="red") +
 	ylab("Sensitivity Index") +
 	xlab("Parameters")
 
@@ -286,10 +315,14 @@ ggsave(plot = sensitivity_graph_both_f99, filename = here(experiment_path,"gsa",
 
 # Sampling Importance Resampling (SIR)
 ```{r}
+# Only perform sir on sensititve parameters
+param_bounds_sensitive <- param_bounds %>%
+	filter(Parameter %in% sensitive_parameters_both)
+
 sir_calibration <- sir(site_data = calibration_data,
 											 climate_data = climate_data,
 											 initial_c = initial_c_calibration_spinup,
-											 parameter_bounds = param_bounds,
+											 parameter_bounds = param_bounds_sensitive,
 											 sample_size = sir_sample_size,
 											 resample_size = sir_resample_size)
 
