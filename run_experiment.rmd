@@ -266,8 +266,9 @@ sensitivity_graph_first_sj <- sensitivity_graph_template %+% sensitivity_calibra
 			ymax=singsi_uci,
 			ymin=singsi_lci) +
 	geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
-	geom_errorbar(width=0.2, linewidth=1, color="black") +
-	geom_hline(yintercept = sensitive_parameter_cutoff, color="red") +
+	geom_errorbar(width=0.2, linewidth=1, aes(color="confidence_intervals")) +
+	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
+	scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red')) +
 	ylab("First-Order Sensitivity Index") +
 	xlab("Parameters")
 
@@ -279,8 +280,9 @@ sensitivity_graph_total_sj <- sensitivity_graph_template %+% sensitivity_calibra
 			ymax=totsi_uci,
 			ymin=totsi_lci) +
 	geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
-	geom_errorbar(width=0.2, linewidth=1, color="black") +
-	geom_hline(yintercept = sensitive_parameter_cutoff, color="red") +
+	geom_errorbar(width=0.2, linewidth=1, aes(color="confidence_intervals")) +
+	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
+	scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red')) +
 	ylab("Total-Order Sensitivity Index") +
 	xlab("Parameters")
 
@@ -290,14 +292,16 @@ sensitivity_calibration_sj_pivoted <- sensitivity_calibration_sj%>%
 
 sensitivity_graph_both_sj <-  sensitivity_graph_template %+% sensitivity_calibration_sj_pivoted +
 	aes(x = reorder(params, index),
-			y = index) +
-	geom_bar(aes(fill = order), stat='identity', position="dodge", alpha=0.7) +
-	geom_errorbar(aes(ymax=singsi_uci, ymin=singsi_lci), width=0.2, linewidth=1, color="black") +
-	geom_errorbar(aes(ymax=totsi_uci, ymin=totsi_lci), width=0.2, linewidth=1, color="#888888") +
-	geom_hline(yintercept = sensitive_parameter_cutoff, color="red") +
+			y = index,
+			fill=order) +
+	geom_bar(stat='identity', position="dodge", alpha=0.7) +
+	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
+	geom_errorbar(aes(ymax=singsi_uci, ymin=singsi_lci, color="confidence_intervals_single"), width=0.2, linewidth=1) +
+	geom_errorbar(aes(ymax=totsi_uci, ymin=totsi_lci, color="confidence_intervals_total"), width=0.2, linewidth=1) +
+	scale_color_manual(values=c('confidence_intervals_total'='black', 'confidence_intervals_single'='grey', 'cutoff'='red')) +
 	ylab("Sensitivity Index") +
 	xlab("Parameters")
-
+ 
 # Fast99
 # Main
 sensitivity_graph_main_f99 <- sensitivity_graph_template %+% sensitivity_calibration_f99 +
@@ -306,7 +310,8 @@ sensitivity_graph_main_f99 <- sensitivity_graph_template %+% sensitivity_calibra
 	xlab("Parameters") +
 	ylab("Main Effect Sensitivity Index") +
 	geom_bar(stat='identity', fill="grey", alpha=0.70) +
-		geom_hline(yintercept = sensitive_parameter_cutoff, color="red")
+	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
+	scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red'))
 
 # Interactions
 sensitivity_graph_interaction_f99 <- sensitivity_graph_template %+% sensitivity_calibration_f99 +
@@ -315,7 +320,8 @@ sensitivity_graph_interaction_f99 <- sensitivity_graph_template %+% sensitivity_
 	xlab("Parameters") +
 	ylab("Interaction Effect Sensitivity Index") +
 	geom_bar(stat='identity', fill="grey", alpha=0.70) +
-		geom_hline(yintercept = sensitive_parameter_cutoff, color="red")
+	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
+	scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red'))
 # Both
 sensitivity_calibration_f99_pivoted <- sensitivity_calibration_f99 %>%
 	pivot_longer(c("main", "interactions"), names_to = "order", values_to = "index")
@@ -324,7 +330,8 @@ sensitivity_graph_both_f99 <-  sensitivity_graph_template %+% sensitivity_calibr
 	aes(x = reorder(params, index),
 			y = index) +
 	geom_bar(aes(fill = order), stat='identity', position="dodge", alpha=0.7) +
-		geom_hline(yintercept = sensitive_parameter_cutoff, color="red") +
+	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
+	scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red'))
 	ylab("Sensitivity Index") +
 	xlab("Parameters")
 
@@ -394,7 +401,8 @@ sir_graph <- ggplot() +
 	theme_bw() +
 	theme(panel.border = element_rect(colour = "black", fill = NA), panel.grid.major = element_blank(),
 				axis.title.x=element_blank(),panel.grid.minor = element_blank()) +
-	scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0))
+	scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) +
+		theme(aspect.ratio=1)
 
 ggsave(plot = sir_graph, filename = here(experiment_path,"sir","sir.png"))
 ```
@@ -442,25 +450,28 @@ sir_calibration$model_return_posterior %>%
 make_soc_graphs <- function(model_return_data) 
 {
 	soc_graph <- ggplot(model_return_data, aes(x = year)) +
+		geom_col(aes(y = soc_tha_30cm), color="#888888") +
 		geom_point(aes(y = soc_total)) +
-		geom_point(aes(y = soc_tha_30cm), color="red") +
 		facet_wrap(vars(treatment_name)) +
 		ylab("SOC (t/ha)") +
-		theme_bw()
+		theme_bw() +
+		theme(aspect.ratio=1)
 	
 	soc_delta_cumulative_graph <- ggplot(model_return_data, aes(x = year)) +
+		geom_col(aes(y = soc_tha_30cm_delta_cumulative), color="#888888") +
 		geom_point(aes(y = soc_total_delta_cumulative)) +
-		geom_point(aes(y = soc_tha_30cm_delta_cumulative), color="red") +
 		facet_wrap(vars(treatment_name)) +
 		ylab("ΔSOC (t/ha)") +
-		theme_bw()
+		theme_bw() +
+		theme(aspect.ratio=1)
 	
 	soc_delta_progressive_graph <- ggplot(model_return_data, aes(x = year)) +
+		geom_col(aes(y = soc_tha_30cm_delta_progressive), color="#888888") +
 		geom_point(aes(y = soc_total_delta_progressive)) +
-		geom_point(aes(y = soc_tha_30cm_delta_progressive), color="red") +
 		facet_wrap(vars(treatment_name)) +
 		ylab("Year-by-year ΔSOC (t/ha)") +
-		theme_bw()
+		theme_bw() +
+		theme(aspect.ratio=1)
 	
 	data_name <- deparse(substitute(model_return_data))
 	
@@ -602,12 +613,28 @@ readr::write_csv(uncertainty_calibration_posterior$montecarlo, file=here(experim
 ## Graphing
 ```{r}
 # 1:1 simulated:measured graph
+uncertainty_graphdata1 <- uncertainty_calibration_prior$montecarlo %>%
+	mutate(measure = "prior_montecarlo")
+uncertainty_graphdata2 <- uncertainty_calibration_posterior$montecarlo %>%
+	mutate(measure = "posterior_montecarlo")
+uncertainty_graphdata3 <- uncertainty_calibration_posterior$median %>%
+	mutate(measure = "posterior_median")
+uncertainty_graphdata <- uncertainty_graphdata1 %>%
+	bind_rows(uncertainty_graphdata2) %>%
+	bind_rows(uncertainty_graphdata3)
+
 uncertainty_graph <- ggplot(data = NULL, aes(x=soc_total/10, y=soc_tha*(30/(soil_depth_max_cm - soil_depth_min_cm)))) +
-	geom_point(data=uncertainty_calibration_prior$montecarlo, shape=4, color = "lightgrey") +
-	geom_point(data=uncertainty_calibration_posterior$montecarlo, shape=3, color = "darkgrey") +
-	geom_point(data=uncertainty_calibration_posterior$median, color="black") +
+	geom_point(data=uncertainty_graphdata, aes(color = measure, shape = measure)) +
+	scale_colour_manual(values = c("posterior_median" = "black",
+																 "posterior_montecarlo" = "#888888",
+																 "prior_montecarlo" = "#bbbbbb")) +
+	scale_shape_manual(values = c("posterior_median" = 16,
+																"posterior_montecarlo" = 3,
+																"prior_montecarlo" = 4)) +
 	geom_abline(intercept = 0, slope = 1) +
-	coord_fixed(ratio = 1, xlim = c(0,400), ylim = c(0,400), expand = TRUE, clip="off") +
+	ylab("Measured SOC (t C / ha)") +
+	xlab("Simulated SOC (t C / ha)") +
+	coord_fixed(ratio = 1, expand = TRUE, clip="off") +
 	theme_bw()
 
 ggsave(plot = uncertainty_graph, filename = here(experiment_path,"uncertainty","uncertainty.png"))
