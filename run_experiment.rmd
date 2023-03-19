@@ -632,8 +632,8 @@ uncertainty_graph <- ggplot(data = NULL, aes(x=soc_total/10, y=soc_tha*(30/(soil
 																"posterior_montecarlo" = 3,
 																"prior_montecarlo" = 4)) +
 	geom_abline(intercept = 0, slope = 1) +
-	ylab("Measured SOC (t C / ha)") +
-	xlab("Simulated SOC (t C / ha)") +
+	ylab("Measured SOC (t C / ha / 30cm)") +
+	xlab("Simulated SOC (t C / ha / 30cm)") +
 	coord_fixed(ratio = 1, expand = TRUE, clip="off") +
 	theme_bw()
 
