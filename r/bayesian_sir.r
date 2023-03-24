@@ -1,6 +1,7 @@
 #=================================================================================
 # Sampling Importance Resampling algorithm with Latin hypercube sampling in R
 #=================================================================================
+
 library(lhs)
 library(doParallel)
 library(parallel)

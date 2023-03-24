@@ -3,6 +3,18 @@ make_depth_groups <- function(input) {
 	z <- input %>%
 		mutate(soil_depth = paste0(soil_depth_min_cm,"-",soil_depth_max_cm))
 	
+	number_of_measurements = z %>%
+		filter(!is.na(soc_tha)) %>%
+		nrow
+	
+	if(number_of_measurements == 0) {
+		zero_combination_rows <- z %>%
+			mutate(combination_group = 0,
+						 lowest_depth = NA)
+		return(zero_combination_rows)
+	}
+	
+	
 	one_combination_depths <- NULL
 	two_combination_depths <- NULL
 	three_combination_depths <- NULL
@@ -14,15 +26,10 @@ make_depth_groups <- function(input) {
 	if(nrow(z) >= 1) {
 		one_combination <- combn(z$soil_depth, 1) %>%
 			t %>%
-			as_tibble() %>%
-			rowwise() %>%
-			mutate(min1 = as.numeric(str_split(V1,"-")[[1]][1]),
-						 max1 = as.numeric(str_split(V1,"-")[[1]][2])) %>%
-			mutate(min_unique = (any(duplicated(c(min1)))),
-						 max_unique = (any(duplicated(c(max1)))),
-						 lowest_depth = (max1) - (min1)) %>%
-			filter(!min_unique,
-						 !max_unique) %>%
+			magrittr::set_colnames(c("V1")) %>%
+			as_tibble(.name_repair = "unique") %>%
+			separate(c("V1"), into = c("min","max"), sep = "-", convert = T, remove = F) %>%
+			mutate(lowest_depth = (max) - (min)) %>%
 			# Select the depth closest to 30
 			ungroup() %>%
 			mutate(lowest_depth_diff = abs(30-lowest_depth)) %>%
@@ -39,14 +46,12 @@ make_depth_groups <- function(input) {
 	if(nrow(z) >= 2) {
 		two_combination <- combn(z$soil_depth, 2) %>%
 			t %>%
-			as_tibble() %>%
-			rowwise() %>%
-			mutate(min1 = as.numeric(str_split(V1,"-")[[1]][1]),
-						 max1 = as.numeric(str_split(V1,"-")[[1]][2]),
-						 min2 = as.numeric(str_split(V2,"-")[[1]][1]),
-						 max2 = as.numeric(str_split(V2,"-")[[1]][2])) %>%
-			mutate(min_unique = (any(duplicated(c(min1, min2)))),
-						 max_unique = (any(duplicated(c(max1, max2)))),
+			magrittr::set_colnames(c("V1", "V2")) %>%
+			as_tibble(.name_repair = "unique") %>%
+			separate(c("V1"), into = c("min1","max1"), sep = "-", convert = T, remove = F) %>%
+			separate(c("V2"), into = c("min2","max2"), sep = "-", convert = T, remove = F) %>%
+			mutate(min_unique = min1 == min2,
+						 max_unique = max1 == max2,
 						 lowest_depth = (max1 + max2) - (min1 + min2)) %>%
 			filter(!min_unique,
 						 !max_unique) %>%
@@ -66,19 +71,25 @@ make_depth_groups <- function(input) {
 	if(nrow(z) >= 3) {
 		three_combination <- combn(z$soil_depth, 3) %>%
 			t %>%
-			as_tibble() %>%
-			rowwise() %>%
-			mutate(min1 = as.numeric(str_split(V1,"-")[[1]][1]),
-						 max1 = as.numeric(str_split(V1,"-")[[1]][2]),
-						 min2 = as.numeric(str_split(V2,"-")[[1]][1]),
-						 max2 = as.numeric(str_split(V2,"-")[[1]][2]),
-						 min3 = as.numeric(str_split(V3,"-")[[1]][1]),
-						 max3 = as.numeric(str_split(V3,"-")[[1]][2])) %>%
-			mutate(min_unique = (any(duplicated(c(min1, min2, min3)))),
-						 max_unique = (any(duplicated(c(max1, max2, max3)))),
-						 lowest_depth = (max1 + max2 + max3) - (min1 + min2 + min3)) %>%
-			filter(!min_unique,
-						 !max_unique) %>%
+			magrittr::set_colnames(c("V1", "V2", "V3")) %>%
+			as_tibble(.name_repair = "unique") %>%
+			separate(c("V1"), into = c("min1","max1"), sep = "-", remove = F) %>%
+			separate(c("V2"), into = c("min2","max2"), sep = "-", remove = F) %>%
+			separate(c("V3"), into = c("min3","max3"), sep = "-", remove = F) %>%
+			mutate(min_unique1 = min1 == min2,
+						 min_unique2 = min1 == min3,
+						 min_unique3 = min2 == min3,
+						 max_unique1 = max1 == max2,
+						 max_unique2 = max1 == max3,
+						 max_unique3 = max2 == max3,
+						 lowest_depth = (as.double(max1) + as.double(max2) + as.double(max3))
+						 - (as.double(min1) + as.double(min2) + as.double(min3))) %>%
+			filter(!min_unique1,
+						 !min_unique2,
+						 !min_unique3,
+						 !max_unique1,
+						 !max_unique2,
+						 !max_unique3) %>%
 			# Select the depth closest to 30
 			ungroup() %>%
 			mutate(lowest_depth_diff = abs(30-lowest_depth)) %>%

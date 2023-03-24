@@ -84,7 +84,7 @@ dir.create(here(experiment_path, "uncertainty"))
 # Read SLC polygon IDs
 polyids_all <- readr::read_csv(here("data","climate_data","Documentation", "SLC_PCPTREGION.csv"))
 # Read site data
-site_data <- readr::read_csv(here("data","LTE_Master_beta_mar15_addedcolumns.csv")) %>%
+site_data <- readr::read_csv(here("data","LTE_Master_beta_mar15_addedcolumns.csv"), guess_max =100000) %>%
 	left_join(polyids_all, by=c("latitude" = "Lat", "longitude" = "Long")) %>%
 	mutate(tillage = ifelse(is.na(tillage), "CT", tillage))
 
@@ -94,20 +94,73 @@ readr::write_csv(site_data, file=here(experiment_path,"inputs", "site_data.csv")
 ## Add specific site values from lookup tables
 e.g. cinput_lignin_px
 
+## Remove sites where there are no measured values, or only 1 measured value
+```{r}
+site_data_filtered <- site_data %>%
+	group_by(TrtID, replication_number, block) %>%
+	filter(!all(is.na(soc_tha))) %>%
+	filter(!sum(!is.na(soc_tha), na.rm=T) <= 1)
+```
+
 ## Calculate the SOC at 30cm depth
+
+Get estimates for initial C
 ```{r}
-site_data_30cm <- site_data %>%
-	mutate(soc_tha_30cm = soc_tha)
+initialc_dsm <- readr::read_csv(here("data/lte_soc_30_cm_dsm.csv")) %>%
+	mutate(location_name = location_n) %>%
+	select(location_name, initial_dsm = `Can_SOC30 (Mg ha-1)`) %>%
+	unique
+```
+
+```{r message=FALSE, warning=FALSE}
+# remove 0-15 depth measurement from lethbridge
+site_data_filtered_lethbridge <- site_data_filtered %>%
+	filter(!(location_name == "Lethbridge" & soil_depth_min_cm == 0 & soil_depth_max_cm == 15))
+
+# List of experiments to remove because there are issues with them currently
+removed_sites <- c("E10", "E11", "E12", "E17", "E29", "E53", "E58", "E61", "E64", "E67", "E72")
+
+site_data_filtered_removedsites <- site_data_filtered_lethbridge %>%
+	group_by(TrtID, replication_number, block, year_name) %>%
+	filter(!Exp_ID %in% removed_sites) %>%
+	group_split()
+
+# Get each possible combination of sampling depths to reach 0-30cm for each experiment
+site_data_depthgroups <- site_data_filtered_removedsites %>%
+	purrr::map(~make_depth_groups(.)) %>%
+	bind_rows
+
+# 
+zzz <- site_data_depthgroups %>%
+	group_by(TrtID, replication_number, block, year_name, combination_group, lowest_depth) %>%
+	summarise(soc_tha_lowest_depth = sum(soc_tha))
+	ungroup(combination_group) %>%
+	summarise(soc_low = mean(soc_tha)) %>%
+	filter(location_name == "Lethbridge")
+```
+
+Get the total SOC down to 30cm (or lowest sampling depth) by summing
+```{r}
+site_data_4_summed <- site_data_3_joined %>%
+	group_by(Exp_ID, location_name, year_name, treatment_number, treatment_name, initial_dataset, initial_dsm, initial_cmods, initial_soc_year, initial_soc_year_dsm, combination_group, lowest_depth) %>%
+	summarise(soc_tha_lowest_depth = sum(soc_tha)) %>%
+	# Get mean values for each combination group to remove duplicates
+	group_by(Exp_ID, location_name, year_name, treatment_number, treatment_name, initial_dataset, initial_dsm, initial_cmods, initial_soc_year, initial_soc_year_dsm, lowest_depth) %>%
+	summarise(across(c("soc_tha_lowest_depth"), mean))
 ```
 
 
-## Remove sites where there are no measured values
+Add initial C estimate
 ```{r}
-site_data_filtered <- site_data_30cm %>%
-	group_by(TrtID, replication_number) %>%
-	filter(!all(is.na(soc_tha_30cm)))
-
+site_data_3_joined <- site_data_2_depth_groups %>%
+	left_join(initialc_dsm, by=c("location_name")) %>%
 ```
+
+
+
+
+
+
 
 
 ## Only select data associated with the driver:
@@ -124,7 +177,7 @@ site_data_driver %>%
 ## Split the data into calibration and validation sets:
 ```{r}
 site_data_driver_n <- site_data_driver %>%
-	group_by(TrtID, replication_number) %>%
+	group_by(TrtID) %>%
 	n_groups
 
 calibration_sample_indices <- sample.int(site_data_driver_n, ceiling(site_data_driver_n * calibration_sample_percentage/100))
@@ -132,12 +185,12 @@ evaluation_sample_indices <- setdiff(1:site_data_driver_n, calibration_sample_in
 
 
 calibration_data <- site_data_driver %>%
-	group_by(TrtID, replication_number) %>%
+	group_by(TrtID) %>%
 	group_split %>%
 	`[`(calibration_sample_indices)
 
 evaluation_data <- site_data_driver %>%
-	group_by(TrtID, replication_number) %>%
+	group_by(TrtID) %>%
 	group_split %>%
 	`[`(evaluation_sample_indices)
 
