@@ -112,60 +112,63 @@ initialc_dsm <- readr::read_csv(here("data/lte_soc_30_cm_dsm.csv")) %>%
 	unique
 ```
 
+Remove duplicated data in Lethbridge and also remove all sites that have too many rows per treatment per year.
+
 ```{r message=FALSE, warning=FALSE}
 # remove 0-15 depth measurement from lethbridge
 site_data_filtered_lethbridge <- site_data_filtered %>%
 	filter(!(location_name == "Lethbridge" & soil_depth_min_cm == 0 & soil_depth_max_cm == 15))
 
-# List of experiments to remove because there are issues with them currently
-removed_sites <- c("E10", "E11", "E12", "E17", "E29", "E53", "E58", "E61", "E64", "E67", "E72")
+# List of experiments to remove because there are issues with them.
+# This gets all sites where there are over 1 row per trmt per year (per replication per block per sampling depth)
+offending_sites <- site_data %>%
+	group_by(TrtID, replication_number, block, year_name, soil_depth_min_cm, soil_depth_max_cm, soc_tha) %>%
+	tally() %>% #Gets the number of rows in the group
+	filter(n > 1) %>%
+	pull(TrtID) %>%
+	unique()
 
 site_data_filtered_removedsites <- site_data_filtered_lethbridge %>%
 	group_by(TrtID, replication_number, block, year_name) %>%
-	filter(!Exp_ID %in% removed_sites) %>%
-	group_split()
-
-# Get each possible combination of sampling depths to reach 0-30cm for each experiment
-site_data_depthgroups <- site_data_filtered_removedsites %>%
-	purrr::map(~make_depth_groups(.)) %>%
-	bind_rows
-
-# 
-zzz <- site_data_depthgroups %>%
-	group_by(TrtID, replication_number, block, year_name, combination_group, lowest_depth) %>%
-	summarise(soc_tha_lowest_depth = sum(soc_tha))
-	ungroup(combination_group) %>%
-	summarise(soc_low = mean(soc_tha)) %>%
-	filter(location_name == "Lethbridge")
+	filter(!TrtID %in% offending_sites) %>%
+	group_split() %>%
+	bind_rows()
 ```
 
 Get the total SOC down to 30cm (or lowest sampling depth) by summing
 ```{r}
-site_data_4_summed <- site_data_3_joined %>%
-	group_by(Exp_ID, location_name, year_name, treatment_number, treatment_name, initial_dataset, initial_dsm, initial_cmods, initial_soc_year, initial_soc_year_dsm, combination_group, lowest_depth) %>%
-	summarise(soc_tha_lowest_depth = sum(soc_tha)) %>%
-	# Get mean values for each combination group to remove duplicates
-	group_by(Exp_ID, location_name, year_name, treatment_number, treatment_name, initial_dataset, initial_dsm, initial_cmods, initial_soc_year, initial_soc_year_dsm, lowest_depth) %>%
-	summarise(across(c("soc_tha_lowest_depth"), mean))
+# Get the sum of measurement depths to get 0-lowest depth
+site_data_summed <- site_data_filtered_removedsites %>%
+	group_by(TrtID, replication_number, block, year_name) %>%
+	group_by_all() %>%
+	ungroup(soc_tha, bd_gcm3, soil_depth_max_cm, soil_depth_min_cm) %>%
+	summarise(lowest_depth = max(soil_depth_max_cm),
+						soc_tha_lowest_depth = sum(soc_tha))
 ```
 
 
 Add initial C estimate
 ```{r}
-site_data_3_joined <- site_data_2_depth_groups %>%
-	left_join(initialc_dsm, by=c("location_name")) %>%
+site_data_joined <- site_data_summed %>%
+	left_join(initialc_dsm, by=c("location_name"))
 ```
 
-
-
-
-
-
+Correct SOC to 30cm:
+```{r}
+site_data_corrected <- site_data_joined %>%
+	group_by(TrtID, replication_number, block) %>%
+	mutate(lowest_depth_difference = 30 - lowest_depth,
+				 first_soc_treatment = first(na.omit(soc_tha_lowest_depth)),
+				 soc_dsm_difference = initial_dsm - first_soc_treatment,
+				 soc_tha_30cm = ifelse(lowest_depth_difference != 0,
+				 													soc_tha_lowest_depth + soc_dsm_difference,
+				 													soc_tha_lowest_depth))
+```
 
 
 ## Only select data associated with the driver:
 ```{r}
-site_data_driver <- site_data_filtered %>%
+site_data_driver <- site_data_corrected %>%
 	filter(.data[[experiment_driver]] %in% experiment_driver_values)
 
 # Save to file
