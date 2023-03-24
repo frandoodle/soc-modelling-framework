@@ -60,6 +60,16 @@ run_ipcct2 <- function(site_data,
 		filter(year %in% simulation_years) %>%
 		filter(site %in% polyid)
 	
+	# If climate data doesn't exist for this timeframe throw an error
+	climate_flag <- climate_data %>%
+		group_by(site = as.character(POLYID), year = Year, month = Month) %>%
+		filter(year %in% simulation_years) %>%
+		filter(site %in% polyid) %>%
+		nrow
+	if(climate_flag == 0) {
+		stop(paste0("Climate data missing for years: ",paste0(simulation_years, collapse=", "), " and polyid: ",polyid,"\n"))
+	}
+	
 	# Run model
 	result <- do.call("IPCCTier2SOMmodel",
 										append(list(SiteData = site_data_ipcct2,

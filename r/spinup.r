@@ -24,7 +24,7 @@ spinup <- function(site_data,
 	
 	for(col in colnames(site_data_nonnumeric)) {
 		if(length(unique(site_data[[col]])) > 1) {
-			warning(paste0("Two or more values found in column ",col,". Using the first value from year_name = ",site_data[["year_name"]][[1]]))
+			warning(paste0("spinup.r: Two or more values found in column ",col,". Using the first value from year_name = ",site_data[["year_name"]][[1]],"\n"))
 		}
 	}
 	

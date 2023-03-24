@@ -38,7 +38,7 @@ source(here::here("r/bayesian_uncertainty.r"))
 Assign experimental parameters:
 ```{r}
 experiment_driver <- "location_name"
-experiment_driver_values <- c("Ellerslie", "Harrow")
+experiment_driver_values <- c("Lethbridge")
 experiment_model <- "ipcct2"
 experiment_time <- Sys.time() %>%
 	format("%Y%m%dT%H%M%S")
