@@ -23,7 +23,7 @@ library(stringr)
 library(here)
 library(lubridate)
 library(tidyr)
-dir.create(tempdir()) #This fixes a bug if the temporary directory is not found
+dir.create(tempdir()) # This fixes a bug if the temporary directory is not found
 here::i_am("walkthrough_icbm.rmd")
 source(here::here("r/icbm_calculate_re.r"))
 source(here::here("r/icbm_run.r"))
@@ -55,6 +55,9 @@ sir_resample_size <- 3
 Choose how the gsa informs parameter selection for the sir:
 ```{r}
 sensitive_parameter_cutoff <- 0.05
+
+sensitive_parameter_override <- FALSE
+sensitive_parameter_override_params <- c("tmax", "topt")
 ```
 
 
@@ -161,8 +164,8 @@ site_data_corrected <- site_data_joined %>%
 				 first_soc_treatment = first(na.omit(soc_tha_lowest_depth)),
 				 soc_dsm_difference = initial_dsm - first_soc_treatment,
 				 soc_tha_30cm = ifelse(lowest_depth_difference != 0,
-				 													soc_tha_lowest_depth + soc_dsm_difference,
-				 													soc_tha_lowest_depth))
+				 											soc_tha_lowest_depth + soc_dsm_difference,
+				 											soc_tha_lowest_depth))
 ```
 
 
@@ -250,153 +253,162 @@ initial_c_evaluation_measured_tha <- evaluation_data %>%
 
 # Run spinup
 initial_c_evaluation_spinup <- map2(.x = evaluation_data_spinup,
-																		 .y = initial_c_evaluation_measured_tha,
-																		 ~spinup(site_data = .x, 
-																		 				climate_data = climate_data,
-																		 				initial_c = .y,
-																		 				model = "ipcct2"))
+																		.y = initial_c_evaluation_measured_tha,
+																		~spinup(site_data = .x, 
+																						climate_data = climate_data,
+																						initial_c = .y,
+																						model = "ipcct2"))
 
 ```
 
 # Sensitivity Analysis
 ```{r}
-# Sobol-Jansen'
-sensitivity_calibration_sj <- gsa(site_data = calibration_data,
-																	climate_data = climate_data,
-																	initial_c = initial_c_calibration_spinup,
-																	parameter_bounds = param_bounds,
-																	sample_size = gsa_sample_size,
-																	method = "soboljansen")
-
-# Save to file
-sensitivity_calibration_sj %>%
-	mutate(sensitive_parameter_cutoff = sensitive_parameter_cutoff) %>%
-	mutate(driver = experiment_driver,
-				 value = paste(experiment_driver_values, collapse=","),
-				 gsa_sample_n = gsa_sample_size) %>%
-	readr::write_csv(file=here(experiment_path,"gsa","sj.csv"))
-
-# Fast99
-sensitivity_calibration_f99 <- gsa(site_data = calibration_data,
-																	 climate_data = climate_data,
-																	 initial_c = initial_c_calibration_spinup,
-																	 parameter_bounds = param_bounds,
-																	 sample_size = gsa_sample_size,
-																	 method = "fast99")
-
-# Save to file
-sensitivity_calibration_f99 %>%
-	mutate(sensitive_parameter_cutoff = sensitive_parameter_cutoff) %>%
-	mutate(driver = experiment_driver,
-				 value = paste(experiment_driver_values, collapse=","),
-				 gsa_sample_n = gsa_sample_size) %>%
-	readr::write_csv(file=here(experiment_path,"gsa","f99.csv"))
-
-# Get sensitive parameters from gsa results
-sensitive_parameters_sj <- sensitivity_calibration_sj %>%
-	filter(totsi >= sensitive_parameter_cutoff) %>%
-	pull(params)
-
-sensitive_parameters_f99 <- sensitivity_calibration_f99 %>%
-	filter(main >= sensitive_parameter_cutoff) %>%
-	pull(params)
-
-sensitive_parameters_both <- c(sensitive_parameters_sj, sensitive_parameters_f99) %>%
-	unique
+if(!sensitive_parameter_override) {
+	# Sobol-Jansen'
+	sensitivity_calibration_sj <- gsa(site_data = calibration_data,
+																		climate_data = climate_data,
+																		initial_c = initial_c_calibration_spinup,
+																		parameter_bounds = param_bounds,
+																		sample_size = gsa_sample_size,
+																		method = "soboljansen")
+	
+	# Save to file
+	sensitivity_calibration_sj %>%
+		mutate(sensitive_parameter_cutoff = sensitive_parameter_cutoff) %>%
+		mutate(driver = experiment_driver,
+					 value = paste(experiment_driver_values, collapse=","),
+					 gsa_sample_n = gsa_sample_size) %>%
+		readr::write_csv(file=here(experiment_path,"gsa","sj.csv"))
+	
+	# Fast99
+	sensitivity_calibration_f99 <- gsa(site_data = calibration_data,
+																		 climate_data = climate_data,
+																		 initial_c = initial_c_calibration_spinup,
+																		 parameter_bounds = param_bounds,
+																		 sample_size = gsa_sample_size,
+																		 method = "fast99")
+	
+	# Save to file
+	sensitivity_calibration_f99 %>%
+		mutate(sensitive_parameter_cutoff = sensitive_parameter_cutoff) %>%
+		mutate(driver = experiment_driver,
+					 value = paste(experiment_driver_values, collapse=","),
+					 gsa_sample_n = gsa_sample_size) %>%
+		readr::write_csv(file=here(experiment_path,"gsa","f99.csv"))
+	
+	# Get sensitive parameters from gsa results
+	sensitive_parameters_sj <- sensitivity_calibration_sj %>%
+		filter(totsi >= sensitive_parameter_cutoff) %>%
+		pull(params)
+	
+	sensitive_parameters_f99 <- sensitivity_calibration_f99 %>%
+		filter(main >= sensitive_parameter_cutoff) %>%
+		pull(params)
+	
+	sensitive_parameters_both <- c(sensitive_parameters_sj, sensitive_parameters_f99) %>%
+		unique
+} else {
+	sensitive_parameters_both <- sensitive_parameter_override_params
+}
+# Save list of sensitive parameters
+sensitive_parameters_both %>%
+	readr::write_csv(file=here(experiment_path,"gsa","sensitive_parameters.csv"))
 ```
 
 ## Graphing:
 ```{r}
-# Template
-sensitivity_graph_template <- ggplot(data=NULL) + 
-	coord_flip() +
-	theme_bw()
-
-# Sobol-Jansen
-# First-order sensitivity
-sensitivity_graph_first_sj <- sensitivity_graph_template %+% sensitivity_calibration_sj +
-	aes(x = reorder(params, singsi),
-			y = singsi,
-			ymax=singsi_uci,
-			ymin=singsi_lci) +
-	geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
-	geom_errorbar(width=0.2, linewidth=1, aes(color="confidence_intervals")) +
-	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
-	scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red')) +
-	ylab("First-Order Sensitivity Index") +
-	xlab("Parameters")
-
-
-# Total order sensitivity
-sensitivity_graph_total_sj <- sensitivity_graph_template %+% sensitivity_calibration_sj +
-	aes(x = reorder(params, totsi),
-			y = totsi,
-			ymax=totsi_uci,
-			ymin=totsi_lci) +
-	geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
-	geom_errorbar(width=0.2, linewidth=1, aes(color="confidence_intervals")) +
-	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
-	scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red')) +
-	ylab("Total-Order Sensitivity Index") +
-	xlab("Parameters")
-
-# Both
-sensitivity_calibration_sj_pivoted <- sensitivity_calibration_sj%>%
-	pivot_longer(c("totsi", "singsi"), names_to = "order", values_to = "index")
-
-sensitivity_graph_both_sj <-  sensitivity_graph_template %+% sensitivity_calibration_sj_pivoted +
-	aes(x = reorder(params, index),
-			y = index,
-			fill=order) +
-	geom_bar(stat='identity', position="dodge", alpha=0.7) +
-	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
-	geom_errorbar(aes(ymax=singsi_uci, ymin=singsi_lci, color="confidence_intervals_single"), width=0.2, linewidth=1) +
-	geom_errorbar(aes(ymax=totsi_uci, ymin=totsi_lci, color="confidence_intervals_total"), width=0.2, linewidth=1) +
-	scale_color_manual(values=c('confidence_intervals_total'='black', 'confidence_intervals_single'='grey', 'cutoff'='red')) +
-	ylab("Sensitivity Index") +
-	xlab("Parameters")
- 
-# Fast99
-# Main
-sensitivity_graph_main_f99 <- sensitivity_graph_template %+% sensitivity_calibration_f99 +
-	aes(x = reorder(params, main),
-			y = main) + 
-	xlab("Parameters") +
-	ylab("Main Effect Sensitivity Index") +
-	geom_bar(stat='identity', fill="grey", alpha=0.70) +
-	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
-	scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red'))
-
-# Interactions
-sensitivity_graph_interaction_f99 <- sensitivity_graph_template %+% sensitivity_calibration_f99 +
-	aes(x = reorder(params, interactions),
-			y = interactions) + 
-	xlab("Parameters") +
-	ylab("Interaction Effect Sensitivity Index") +
-	geom_bar(stat='identity', fill="grey", alpha=0.70) +
-	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
-	scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red'))
-# Both
-sensitivity_calibration_f99_pivoted <- sensitivity_calibration_f99 %>%
-	pivot_longer(c("main", "interactions"), names_to = "order", values_to = "index")
-
-sensitivity_graph_both_f99 <-  sensitivity_graph_template %+% sensitivity_calibration_f99_pivoted +
-	aes(x = reorder(params, index),
-			y = index) +
-	geom_bar(aes(fill = order), stat='identity', position="dodge", alpha=0.7) +
-	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
-	scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red')) +
-	ylab("Sensitivity Index") +
-	xlab("Parameters")
-
-# Save to file
-ggsave(plot = sensitivity_graph_first_sj, filename = here(experiment_path,"gsa","sj_first.png"))
-ggsave(plot = sensitivity_graph_total_sj, filename = here(experiment_path,"gsa","sj_total.png"))
-ggsave(plot = sensitivity_graph_both_sj, filename = here(experiment_path,"gsa","sj_both.png"))
-
-ggsave(plot = sensitivity_graph_main_f99, filename = here(experiment_path,"gsa","f99_main.png"))
-ggsave(plot = sensitivity_graph_interaction_f99, filename = here(experiment_path,"gsa","f99_interaction.png"))
-ggsave(plot = sensitivity_graph_both_f99, filename = here(experiment_path,"gsa","f99_both.png"))
+if(!sensitive_parameter_override) {
+	# Template
+	sensitivity_graph_template <- ggplot(data=NULL) + 
+		coord_flip() +
+		theme_bw()
+	
+	# Sobol-Jansen
+	# First-order sensitivity
+	sensitivity_graph_first_sj <- sensitivity_graph_template %+% sensitivity_calibration_sj +
+		aes(x = reorder(params, singsi),
+				y = singsi,
+				ymax=singsi_uci,
+				ymin=singsi_lci) +
+		geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
+		geom_errorbar(width=0.2, linewidth=1, aes(color="confidence_intervals")) +
+		geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
+		scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red')) +
+		ylab("First-Order Sensitivity Index") +
+		xlab("Parameters")
+	
+	
+	# Total order sensitivity
+	sensitivity_graph_total_sj <- sensitivity_graph_template %+% sensitivity_calibration_sj +
+		aes(x = reorder(params, totsi),
+				y = totsi,
+				ymax=totsi_uci,
+				ymin=totsi_lci) +
+		geom_bar(stat='identity', fill="grey", alpha=0.70 ) +
+		geom_errorbar(width=0.2, linewidth=1, aes(color="confidence_intervals")) +
+		geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
+		scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red')) +
+		ylab("Total-Order Sensitivity Index") +
+		xlab("Parameters")
+	
+	# Both
+	sensitivity_calibration_sj_pivoted <- sensitivity_calibration_sj%>%
+		pivot_longer(c("totsi", "singsi"), names_to = "order", values_to = "index")
+	
+	sensitivity_graph_both_sj <-  sensitivity_graph_template %+% sensitivity_calibration_sj_pivoted +
+		aes(x = reorder(params, index),
+				y = index,
+				fill=order) +
+		geom_bar(stat='identity', position="dodge", alpha=0.7) +
+		geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
+		geom_errorbar(aes(ymax=singsi_uci, ymin=singsi_lci, color="confidence_intervals_single"), width=0.2, linewidth=1) +
+		geom_errorbar(aes(ymax=totsi_uci, ymin=totsi_lci, color="confidence_intervals_total"), width=0.2, linewidth=1) +
+		scale_color_manual(values=c('confidence_intervals_total'='black', 'confidence_intervals_single'='grey', 'cutoff'='red')) +
+		ylab("Sensitivity Index") +
+		xlab("Parameters")
+	
+	# Fast99
+	# Main
+	sensitivity_graph_main_f99 <- sensitivity_graph_template %+% sensitivity_calibration_f99 +
+		aes(x = reorder(params, main),
+				y = main) + 
+		xlab("Parameters") +
+		ylab("Main Effect Sensitivity Index") +
+		geom_bar(stat='identity', fill="grey", alpha=0.70) +
+		geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
+		scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red'))
+	
+	# Interactions
+	sensitivity_graph_interaction_f99 <- sensitivity_graph_template %+% sensitivity_calibration_f99 +
+		aes(x = reorder(params, interactions),
+				y = interactions) + 
+		xlab("Parameters") +
+		ylab("Interaction Effect Sensitivity Index") +
+		geom_bar(stat='identity', fill="grey", alpha=0.70) +
+		geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
+		scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red'))
+	# Both
+	sensitivity_calibration_f99_pivoted <- sensitivity_calibration_f99 %>%
+		pivot_longer(c("main", "interactions"), names_to = "order", values_to = "index")
+	
+	sensitivity_graph_both_f99 <-  sensitivity_graph_template %+% sensitivity_calibration_f99_pivoted +
+		aes(x = reorder(params, index),
+				y = index) +
+		geom_bar(aes(fill = order), stat='identity', position="dodge", alpha=0.7) +
+		geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
+		scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red')) +
+		ylab("Sensitivity Index") +
+		xlab("Parameters")
+	
+	# Save to file
+	ggsave(plot = sensitivity_graph_first_sj, filename = here(experiment_path,"gsa","sj_first.png"))
+	ggsave(plot = sensitivity_graph_total_sj, filename = here(experiment_path,"gsa","sj_total.png"))
+	ggsave(plot = sensitivity_graph_both_sj, filename = here(experiment_path,"gsa","sj_both.png"))
+	
+	ggsave(plot = sensitivity_graph_main_f99, filename = here(experiment_path,"gsa","f99_main.png"))
+	ggsave(plot = sensitivity_graph_interaction_f99, filename = here(experiment_path,"gsa","f99_interaction.png"))
+	ggsave(plot = sensitivity_graph_both_f99, filename = here(experiment_path,"gsa","f99_both.png"))
+}
 ```
 
 # Sampling Importance Resampling (SIR)
@@ -456,7 +468,7 @@ sir_graph <- ggplot() +
 	theme(panel.border = element_rect(colour = "black", fill = NA), panel.grid.major = element_blank(),
 				axis.title.x=element_blank(),panel.grid.minor = element_blank()) +
 	scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) +
-		theme(aspect.ratio=1)
+	theme(aspect.ratio=1)
 
 ggsave(plot = sir_graph, filename = here(experiment_path,"sir","sir.png"))
 ```
