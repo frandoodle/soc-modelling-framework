@@ -35,11 +35,14 @@ spinup <- function(site_data,
 	
 	# Calculate steady state
 	ss <- do.call(model_function,
-					append(list(site_data = site_data_average,
-											climate_data = climate_data),
-								 parameters))
+								append(list(site_data = site_data_average,
+														climate_data = climate_data),
+											 parameters))
 	ss_proportion <- ss/sum(ss)
-	ss_initial <- ss_proportion*initial_c
+	model_units <- switch(model,
+												ipcct2 = 0.01,
+												icbm = 1)
+	ss_initial <- ss_proportion*(initial_c/model_units)
 	
 	return(as.list(ss_initial))
 }

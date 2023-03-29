@@ -77,7 +77,10 @@ run_ipcct2 <- function(site_data,
 																init.active = init_active,
 																init.slow = init_slow,
 																init.passive = init_passive),
-													 params))
+													 params)) %>%
+		# Convert to tonnes per hectare
+		# IPCCT2 gives results in g/m2
+		mutate(soc_total_tha = 0.01*soc_total, .after=soc_total)
 	
 	if(return_site_inputs) {
 		result <- result %>%

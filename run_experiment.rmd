@@ -38,7 +38,7 @@ source(here::here("r/bayesian_uncertainty.r"))
 Assign experimental parameters:
 ```{r}
 experiment_driver <- "location_name"
-experiment_driver_values <- c("Lethbridge")
+experiment_driver_values <- c("Ellerslie")
 experiment_model <- "ipcct2"
 experiment_time <- Sys.time() %>%
 	format("%Y%m%dT%H%M%S")
@@ -229,13 +229,12 @@ calibration_data_spinup <- calibration_data %>%
 	map(~slice(., 1:10))
 
 # Get initial C
-initial_c_calibration_measured <- calibration_data_spinup %>%
-	map(~.$initial_soc_tha[1]*10) %>%
-	map(~ifelse(is.na(.), 1000, .))
+initial_c_calibration_measured_tha <- calibration_data_spinup %>%
+	map(~first(.$initial_soc_tha[1]))
 
 # Run spinup
 initial_c_calibration_spinup <- map2(.x = calibration_data_spinup,
-																		 .y = initial_c_calibration_measured,
+																		 .y = initial_c_calibration_measured_tha,
 																		 ~spinup(site_data = .x, 
 																		 				climate_data = climate_data,
 																		 				initial_c = .y,
@@ -246,13 +245,12 @@ evaluation_data_spinup <- evaluation_data %>%
 	map(~slice(., 1:10))
 
 # Get initial C
-initial_c_evaluation_measured <- evaluation_data %>%
-	map(~.$initial_soc_tha[1]*10) %>%
-	map(~ifelse(is.na(.), 1000, .))
+initial_c_evaluation_measured_tha <- evaluation_data %>%
+	map(~first(.$initial_soc_tha[1]))
 
 # Run spinup
 initial_c_evaluation_spinup <- map2(.x = evaluation_data_spinup,
-																		 .y = initial_c_evaluation_measured,
+																		 .y = initial_c_evaluation_measured_tha,
 																		 ~spinup(site_data = .x, 
 																		 				climate_data = climate_data,
 																		 				initial_c = .y,
@@ -387,7 +385,7 @@ sensitivity_graph_both_f99 <-  sensitivity_graph_template %+% sensitivity_calibr
 			y = index) +
 	geom_bar(aes(fill = order), stat='identity', position="dodge", alpha=0.7) +
 	geom_hline(aes(color="cutoff", yintercept = sensitive_parameter_cutoff)) +
-	scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red'))
+	scale_color_manual(values=c('confidence_intervals'='black', 'cutoff'='red')) +
 	ylab("Sensitivity Index") +
 	xlab("Parameters")
 
@@ -506,24 +504,24 @@ sir_calibration$model_return_posterior %>%
 make_soc_graphs <- function(model_return_data) 
 {
 	soc_graph <- ggplot(model_return_data, aes(x = year)) +
-		geom_col(aes(y = soc_tha_30cm), color="#888888") +
-		geom_point(aes(y = soc_total)) +
+		geom_col(aes(y = soc_tha_30cm), color="#888888", position=position_identity()) +
+		geom_point(aes(y = soc_total_tha)) +
 		facet_wrap(vars(treatment_name)) +
 		ylab("SOC (t/ha)") +
 		theme_bw() +
 		theme(aspect.ratio=1)
 	
 	soc_delta_cumulative_graph <- ggplot(model_return_data, aes(x = year)) +
-		geom_col(aes(y = soc_tha_30cm_delta_cumulative), color="#888888") +
-		geom_point(aes(y = soc_total_delta_cumulative)) +
+		geom_col(aes(y = soc_tha_30cm_delta_cumulative), color="#888888", position=position_identity()) +
+		geom_point(aes(y = soc_total_tha_delta_cumulative)) +
 		facet_wrap(vars(treatment_name)) +
 		ylab("ΔSOC (t/ha)") +
 		theme_bw() +
 		theme(aspect.ratio=1)
 	
 	soc_delta_progressive_graph <- ggplot(model_return_data, aes(x = year)) +
-		geom_col(aes(y = soc_tha_30cm_delta_progressive), color="#888888") +
-		geom_point(aes(y = soc_total_delta_progressive)) +
+		geom_col(aes(y = soc_tha_30cm_delta_progressive), color="#888888", position=position_identity()) +
+		geom_point(aes(y = soc_total_tha_delta_progressive)) +
 		facet_wrap(vars(treatment_name)) +
 		ylab("Year-by-year ΔSOC (t/ha)") +
 		theme_bw() +
@@ -679,7 +677,7 @@ uncertainty_graphdata <- uncertainty_graphdata1 %>%
 	bind_rows(uncertainty_graphdata2) %>%
 	bind_rows(uncertainty_graphdata3)
 
-uncertainty_graph <- ggplot(data = NULL, aes(x=soc_total/10, y=soc_tha*(30/(soil_depth_max_cm - soil_depth_min_cm)))) +
+uncertainty_graph <- ggplot(data = NULL, aes(x=soc_total_tha, y=soc_tha_30cm)) +
 	geom_point(data=uncertainty_graphdata, aes(color = measure, shape = measure)) +
 	scale_colour_manual(values = c("posterior_median" = "black",
 																 "posterior_montecarlo" = "#888888",
@@ -699,21 +697,21 @@ ggsave(plot = uncertainty_graph, filename = here(experiment_path,"uncertainty","
 ```{r}
 ribbon_points_posterior <- uncertainty_calibration_posterior$montecarlo %>%
 	group_by(year, treatment_name) %>%
-	select(year, treatment_name, soc_total) %>%
-	summarise(soc_total_max = max(soc_total),
-						soc_total_min = min(soc_total))
+	select(year, treatment_name, soc_total_tha) %>%
+	summarise(soc_total_max = max(soc_total_tha),
+						soc_total_min = min(soc_total_tha))
 
 ribbon_points_prior <- uncertainty_calibration_prior$montecarlo %>%
 	group_by(year, treatment_name) %>%
-	select(year, treatment_name, soc_total) %>%
-	summarise(soc_total_max = max(soc_total),
-						soc_total_min = min(soc_total))
+	select(year, treatment_name, soc_total_tha) %>%
+	summarise(soc_total_max = max(soc_total_tha),
+						soc_total_min = min(soc_total_tha))
 
 ggplot(data = NULL, aes(x=year)) +
-	geom_ribbon(data=ribbon_points_prior, aes(ymax=soc_total_max/10, ymin=soc_total_min/10), fill="lightgrey") +
-	geom_ribbon(data=ribbon_points_posterior, aes(ymax=soc_total_max/10, ymin=soc_total_min/10), fill="darkgrey") +
-	geom_point(data=uncertainty_calibration_posterior$montecarlo, aes(y=soc_tha*(30/(soil_depth_max_cm - soil_depth_min_cm))), color = "black") +
-	geom_line(data=uncertainty_calibration_posterior$median, aes(y=soc_total/10), color = "black") +
+	geom_ribbon(data=ribbon_points_prior, aes(ymax=soc_total_max, ymin=soc_total_min), fill="lightgrey") +
+	geom_ribbon(data=ribbon_points_posterior, aes(ymax=soc_total_max, ymin=soc_total_min), fill="darkgrey") +
+	geom_point(data=uncertainty_calibration_posterior$montecarlo, aes(y=soc_tha_30cm), color = "black") +
+	geom_line(data=uncertainty_calibration_posterior$median, aes(y=soc_total_tha), color = "black") +
 	facet_wrap(vars(treatment_name)) +
 	theme_bw()
 

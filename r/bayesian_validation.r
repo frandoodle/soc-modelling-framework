@@ -5,22 +5,22 @@ validation <- function(model_return)
 	
 	y <- model_return %>%
 		group_by(SampleID) %>%
-		select(SampleID, Exp_ID, location_name, treatment_name, treatment_number, year, soc_total, soc_tha_30cm) %>%
+		select(SampleID, Exp_ID, location_name, treatment_name, treatment_number, year, soc_total_tha, soc_tha_30cm) %>%
 		na.omit() %>%
 		group_split
 	
 	yy <- y %>%
 		purrr::map(function(data) {
 			data %>%
-				mutate(soc_total_delta_cumulative = soc_total - first(soc_total),
+				mutate(soc_total_tha_delta_cumulative = soc_total_tha - first(soc_total_tha),
 							 soc_tha_30cm_delta_cumulative = soc_tha_30cm - first(soc_tha_30cm),
 							 
-							 soc_total_delta_progressive = soc_total - lag(soc_total),
+							 soc_total_tha_delta_progressive = soc_total_tha - lag(soc_total_tha),
 							 soc_tha_30cm_delta_progressive = soc_tha_30cm - lag(soc_tha_30cm)) %>%
 				# Set the first value for each delta soc column to NA so they aren't included in validation
-		mutate(soc_total_delta_cumulative = ifelse(row_number() == 1, NA,soc_total_delta_cumulative),
+		mutate(soc_total_tha_delta_cumulative = ifelse(row_number() == 1, NA,soc_total_tha_delta_cumulative),
 					 soc_tha_30cm_delta_cumulative = ifelse(row_number() == 1, NA,soc_tha_30cm_delta_cumulative),
-					 soc_total_delta_progressive = ifelse(row_number() == 1, NA,soc_total_delta_progressive),
+					 soc_total_tha_delta_progressive = ifelse(row_number() == 1, NA,soc_total_tha_delta_progressive),
 					 soc_tha_30cm_delta_progressive = ifelse(row_number() == 1, NA,soc_tha_30cm_delta_progressive))
 		})
 	yyy <- yy %>%
@@ -29,18 +29,18 @@ validation <- function(model_return)
 				select(SampleID, Exp_ID, location_name, treatment_name, treatment_number) %>%
 				unique
 			
-			validation_stocks <- validation_calculate_stats(simulated = data[["soc_total"]]/10,
+			validation_stocks <- validation_calculate_stats(simulated = data[["soc_total_tha"]],
 																											measured = data[["soc_tha_30cm"]]) %>%
 				enframe %>%
 				pivot_wider(names_from = name) %>%
 				rename_with(~ paste0(., "_stocks"))
 			
-			validation_delta_cumulative <- validation_calculate_stats(simulated = data[["soc_total_delta_cumulative"]]/10,
+			validation_delta_cumulative <- validation_calculate_stats(simulated = data[["soc_total_tha_delta_cumulative"]],
 																																measured = data[["soc_tha_30cm_delta_cumulative"]]) %>%
 				enframe %>%
 				pivot_wider(names_from = name) %>%
 				rename_with(~ paste0(., "_delta_cumulative"))
-			validation_delta_progressive <- validation_calculate_stats(simulated = data[["soc_total_delta_progressive"]]/10,
+			validation_delta_progressive <- validation_calculate_stats(simulated = data[["soc_total_tha_delta_progressive"]],
 																																 measured = data[["soc_tha_30cm_delta_progressive"]]) %>%
 				enframe %>%
 				pivot_wider(names_from = name) %>%
