@@ -38,7 +38,7 @@ source(here::here("r/bayesian_uncertainty.r"))
 Assign experimental parameters:
 ```{r}
 experiment_driver <- "location_name"
-experiment_driver_values <- c("Ellerslie")
+experiment_driver_values <- c("Ellerslie", "Harrow", "Scott", "Lethbridge")
 experiment_model <- "ipcct2"
 experiment_time <- Sys.time() %>%
 	format("%Y%m%dT%H%M%S")
@@ -87,7 +87,8 @@ dir.create(here(experiment_path, "uncertainty"))
 # Read SLC polygon IDs
 polyids_all <- readr::read_csv(here("data","climate_data","Documentation", "SLC_PCPTREGION.csv"))
 # Read site data
-site_data <- readr::read_csv(here("data","LTE_Master_beta_mar15_addedcolumns.csv"), guess_max =100000) %>%
+site_data <- readr::read_csv(here("data","LTE_Master_beta_mar29_addedcolumns.csv"), guess_max = Inf) %>%
+	select(-treatment_name) %>%
 	left_join(polyids_all, by=c("latitude" = "Lat", "longitude" = "Long")) %>%
 	mutate(tillage = ifelse(is.na(tillage), "CT", tillage))
 
@@ -105,38 +106,81 @@ site_data_filtered <- site_data %>%
 	filter(!sum(!is.na(soc_tha), na.rm=T) <= 1)
 ```
 
-## Calculate the SOC at 30cm depth
+Aggregate data about multiple crops
+(If there are multiple fields where each sequence of the rotation is being grown for the same year, we get the average yield/residue across each field/crop. If crops are grown on the SAME field, then we get the sum (e.g. cover crops))
 
-Get estimates for initial C
 ```{r}
-initialc_dsm <- readr::read_csv(here("data/lte_soc_30_cm_dsm.csv")) %>%
-	mutate(location_name = location_n) %>%
-	select(location_name, initial_dsm = `Can_SOC30 (Mg ha-1)`) %>%
-	unique
+current_crop_columns = c("crop",
+												 "ICASA_code",
+												 "AAFC_code")
+
+yield_residue_columns <- c("grain_yield_kgha",
+													 "crop_residue_kgha",
+													 "hay_yield_kgha",
+													 "hay_residue_kgha",
+													 "root_biomass_kgha",
+													 "straw_biomass_kgha",
+													 "silage_yld_kgha",
+													 #"biomass_returned_kgha",
+													 "crop_residue_avg_kgha",
+													 "above_ground_residue_kgha",
+													 "roots_residue_kgha",
+													 "root_exudates_kgha",
+													 "manure_kgha")
+
+fertilizer_columns <- c("N_fertilizer_kgha",
+												"N_fertilizer_kgha_2",
+												"N_fertilizer_kgha_3",
+												"P_fertilizer_kgha",
+												"P_fertilizer_kgha_2",
+												"P_fertilizer_kgha_3",
+												"K_fertilizer_kgha",
+												"K_fertilizer_kgha_2",
+												"S_fertilizer_kgha",
+												"S_fertilizer_kgha_2")
+
+# Handle intercropping (same field)
+site_data_intercropsum <- site_data_filtered %>% 
+	group_by_all %>%
+	ungroup(!!current_crop_columns, !!residue_input_columns, !!fertilizer_columns) %>%
+	summarise(across(current_crop_columns, first),
+						across(residue_input_columns, sum),
+						across(fertilizer_columns, sum))
+
+# Handle rotation sequences
+site_data_rotationmean
+
+site_data_intercropsum %>% 
+	group_by_all %>%
+	ungroup(plot_id, !!current_crop_columns, !!residue_input_columns, !!fertilizer_columns) %>%
+	summarise(across(current_crop_columns, first),
+						across(residue_input_columns, mean),
+						across(fertilizer_columns, mean))
+	
 ```
 
-Remove duplicated data in Lethbridge and also remove all sites that have too many rows per treatment per year.
+
+Remove all sites that have too many rows per treatment per year.
 
 ```{r message=FALSE, warning=FALSE}
-# remove 0-15 depth measurement from lethbridge
-site_data_filtered_lethbridge <- site_data_filtered %>%
-	filter(!(location_name == "Lethbridge" & soil_depth_min_cm == 0 & soil_depth_max_cm == 15))
-
 # List of experiments to remove because there are issues with them.
-# This gets all sites where there are over 1 row per trmt per year (per replication per block per sampling depth)
-offending_sites <- site_data %>%
+# Select sites where there are over 1 row per trmt per year (per replication per block per sampling depth)
+offending_sites <- site_data_rotationmean %>%
 	group_by(TrtID, replication_number, block, year_name, soil_depth_min_cm, soil_depth_max_cm, soc_tha) %>%
 	tally() %>% #Gets the number of rows in the group
 	filter(n > 1) %>%
 	pull(TrtID) %>%
 	unique()
 
-site_data_filtered_removedsites <- site_data_filtered_lethbridge %>%
+warning(paste0("Removing sites ",paste0(offending_sites, collapse=", "), " due too many rows per treatment per year"))
+
+site_data_filtered_removedsites <- site_data_rotationmean %>%
 	group_by(TrtID, replication_number, block, year_name) %>%
-	filter(!TrtID %in% offending_sites) %>%
-	group_split() %>%
-	bind_rows()
+	filter(!TrtID %in% offending_sites)
 ```
+
+
+## Calculate the SOC at 30cm depth
 
 Get the total SOC down to 30cm (or lowest sampling depth) by summing
 ```{r}
@@ -149,6 +193,13 @@ site_data_summed <- site_data_filtered_removedsites %>%
 						soc_tha_lowest_depth = sum(soc_tha))
 ```
 
+Get estimates for initial C
+```{r}
+initialc_dsm <- readr::read_csv(here("data/lte_soc_30_cm_dsm.csv")) %>%
+	mutate(location_name = location_n) %>%
+	select(location_name, initial_dsm = `Can_SOC30 (Mg ha-1)`) %>%
+	unique
+```
 
 Add initial C estimate
 ```{r}
@@ -312,6 +363,7 @@ if(!sensitive_parameter_override) {
 }
 # Save list of sensitive parameters
 sensitive_parameters_both %>%
+	as.data.frame() %>%
 	readr::write_csv(file=here(experiment_path,"gsa","sensitive_parameters.csv"))
 ```
 
