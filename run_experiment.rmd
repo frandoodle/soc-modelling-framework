@@ -38,7 +38,7 @@ source(here::here("r/bayesian_uncertainty.r"))
 Assign experimental parameters:
 ```{r}
 experiment_driver <- "location_name"
-experiment_driver_values <- c("Ellerslie", "Harrow", "Scott", "Lethbridge")
+experiment_driver_values <- c("Ellerslie", "Harrow")
 experiment_model <- "ipcct2"
 experiment_time <- Sys.time() %>%
 	format("%Y%m%dT%H%M%S")
@@ -142,19 +142,17 @@ fertilizer_columns <- c("N_fertilizer_kgha",
 # Handle intercropping (same field)
 site_data_intercropsum <- site_data_filtered %>% 
 	group_by_all %>%
-	ungroup(!!current_crop_columns, !!residue_input_columns, !!fertilizer_columns) %>%
+	ungroup(!!current_crop_columns, !!yield_residue_columns, !!fertilizer_columns) %>%
 	summarise(across(current_crop_columns, first),
-						across(residue_input_columns, sum),
+						across(yield_residue_columns, sum),
 						across(fertilizer_columns, sum))
 
 # Handle rotation sequences
-site_data_rotationmean
-
-site_data_intercropsum %>% 
+site_data_rotationmean <- site_data_intercropsum %>%
 	group_by_all %>%
-	ungroup(plot_id, !!current_crop_columns, !!residue_input_columns, !!fertilizer_columns) %>%
+	ungroup(plot_id, !!current_crop_columns, !!yield_residue_columns, !!fertilizer_columns) %>%
 	summarise(across(current_crop_columns, first),
-						across(residue_input_columns, mean),
+						across(yield_residue_columns, mean),
 						across(fertilizer_columns, mean))
 
 ```
@@ -182,7 +180,15 @@ site_data_filtered_removedsites <- site_data_rotationmean %>%
 
 ## Calculate the SOC at 30cm depth
 
-Get the total SOC down to 30cm (or lowest sampling depth) by summing
+Remove instances of overlapping sampling depths:
+```{r}
+site_data_filtered_removedsites %>%
+	group_by(TrtID, replication_number, block, year_name) %>%
+	filter(any(duplicated(soil_depth_min_cm)) | any(duplicated(soil_depth_max_cm))) %>%
+	filter(ifelse(length(is.na(soc_tha)) >= 1, !is.na(soc_tha), TRUE))
+```
+
+Get the total SOC down to lowest sampling depth by summing
 ```{r}
 # Get the sum of measurement depths to get 0-lowest depth
 site_data_summed <- site_data_filtered_removedsites %>%
@@ -191,6 +197,7 @@ site_data_summed <- site_data_filtered_removedsites %>%
 	ungroup(soc_tha, bd_gcm3, soil_depth_max_cm, soil_depth_min_cm) %>%
 	summarise(lowest_depth = max(soil_depth_max_cm),
 						soc_tha_lowest_depth = sum(soc_tha))
+
 ```
 
 Get estimates for initial C
@@ -231,10 +238,10 @@ site_data_driver %>%
 ```
 
 
-## Split the data into calibration and validation sets:
+## Split the data into calibration and evaluation sets:
 ```{r}
 site_data_driver_n <- site_data_driver %>%
-	group_by(TrtID) %>%
+	group_by(TrtID, replication_number, block) %>%
 	n_groups
 
 calibration_sample_indices <- sample.int(site_data_driver_n, ceiling(site_data_driver_n * calibration_sample_percentage/100))
@@ -242,12 +249,12 @@ evaluation_sample_indices <- setdiff(1:site_data_driver_n, calibration_sample_in
 
 
 calibration_data <- site_data_driver %>%
-	group_by(TrtID) %>%
+	group_by(TrtID, replication_number, block) %>%
 	group_split %>%
 	`[`(calibration_sample_indices)
 
 evaluation_data <- site_data_driver %>%
-	group_by(TrtID) %>%
+	group_by(TrtID, replication_number, block) %>%
 	group_split %>%
 	`[`(evaluation_sample_indices)
 
@@ -570,7 +577,7 @@ make_soc_graphs <- function(model_return_data)
 	soc_graph <- ggplot(model_return_data, aes(x = year)) +
 		geom_col(aes(y = soc_tha_30cm), color="#888888", position=position_identity()) +
 		geom_point(aes(y = soc_total_tha)) +
-		facet_wrap(vars(treatment_name)) +
+		facet_wrap(vars(TrtID)) +
 		ylab("SOC (t/ha)") +
 		theme_bw() +
 		theme(aspect.ratio=1)
@@ -578,7 +585,7 @@ make_soc_graphs <- function(model_return_data)
 	soc_delta_cumulative_graph <- ggplot(model_return_data, aes(x = year)) +
 		geom_col(aes(y = soc_tha_30cm_delta_cumulative), color="#888888", position=position_identity()) +
 		geom_point(aes(y = soc_total_tha_delta_cumulative)) +
-		facet_wrap(vars(treatment_name)) +
+		facet_wrap(vars(TrtID)) +
 		ylab("ΔSOC (t/ha)") +
 		theme_bw() +
 		theme(aspect.ratio=1)
@@ -586,7 +593,7 @@ make_soc_graphs <- function(model_return_data)
 	soc_delta_progressive_graph <- ggplot(model_return_data, aes(x = year)) +
 		geom_col(aes(y = soc_tha_30cm_delta_progressive), color="#888888", position=position_identity()) +
 		geom_point(aes(y = soc_total_tha_delta_progressive)) +
-		facet_wrap(vars(treatment_name)) +
+		facet_wrap(vars(TrtID)) +
 		ylab("Year-by-year ΔSOC (t/ha)") +
 		theme_bw() +
 		theme(aspect.ratio=1)
@@ -741,17 +748,24 @@ uncertainty_graphdata <- uncertainty_graphdata1 %>%
 	bind_rows(uncertainty_graphdata2) %>%
 	bind_rows(uncertainty_graphdata3)
 
+uncertainty_graphdata_max <- max(c(max(uncertainty_graphdata$soc_tha_30cm, na.rm=T),
+																	 max(uncertainty_graphdata$soc_total_tha, na.rm=T)))
+uncertainty_graphdata_min <- min(c(min(uncertainty_graphdata$soc_tha_30cm, na.rm=T),
+																	 min(uncertainty_graphdata$soc_total_tha, na.rm=T)))
+
 uncertainty_graph <- ggplot(data = NULL, aes(x=soc_total_tha, y=soc_tha_30cm)) +
 	geom_point(data=uncertainty_graphdata, aes(color = measure, shape = measure)) +
 	scale_colour_manual(values = c("posterior_median" = "black",
-																 "posterior_montecarlo" = "#888888",
-																 "prior_montecarlo" = "#bbbbbb")) +
+																 "posterior_montecarlo" = "blue",
+																 "prior_montecarlo" = "red")) +
 	scale_shape_manual(values = c("posterior_median" = 16,
 																"posterior_montecarlo" = 3,
 																"prior_montecarlo" = 4)) +
 	geom_abline(intercept = 0, slope = 1) +
 	ylab("Measured SOC (t C / ha / 30cm)") +
 	xlab("Simulated SOC (t C / ha / 30cm)") +
+	lims(y = c(uncertainty_graphdata_min,uncertainty_graphdata_max),
+			 x = c(uncertainty_graphdata_min,uncertainty_graphdata_max)) +
 	coord_fixed(ratio = 1, expand = TRUE, clip="off") +
 	theme_bw()
 
@@ -760,24 +774,29 @@ ggsave(plot = uncertainty_graph, filename = here(experiment_path,"uncertainty","
 
 ```{r}
 ribbon_points_posterior <- uncertainty_calibration_posterior$montecarlo %>%
-	group_by(year, treatment_name) %>%
-	select(year, treatment_name, soc_total_tha) %>%
+	group_by(year, TrtID) %>%
+	select(year, TrtID, soc_total_tha) %>%
 	summarise(soc_total_max = max(soc_total_tha),
 						soc_total_min = min(soc_total_tha))
 
 ribbon_points_prior <- uncertainty_calibration_prior$montecarlo %>%
-	group_by(year, treatment_name) %>%
-	select(year, treatment_name, soc_total_tha) %>%
+	group_by(year, TrtID) %>%
+	select(year, TrtID, soc_total_tha) %>%
 	summarise(soc_total_max = max(soc_total_tha),
 						soc_total_min = min(soc_total_tha))
 
-ggplot(data = NULL, aes(x=year)) +
-	geom_ribbon(data=ribbon_points_prior, aes(ymax=soc_total_max, ymin=soc_total_min), fill="lightgrey") +
-	geom_ribbon(data=ribbon_points_posterior, aes(ymax=soc_total_max, ymin=soc_total_min), fill="darkgrey") +
-	geom_point(data=uncertainty_calibration_posterior$montecarlo, aes(y=soc_tha_30cm), color = "black") +
-	geom_line(data=uncertainty_calibration_posterior$median, aes(y=soc_total_tha), color = "black") +
-	facet_wrap(vars(treatment_name)) +
-	theme_bw()
+ribbon_graph <- ggplot(data = NULL, aes(x=year)) +
+	geom_ribbon(data=ribbon_points_prior, aes(ymax=soc_total_max, ymin=soc_total_min, fill="prior"), alpha=0.3) +
+	geom_ribbon(data=ribbon_points_posterior, aes(ymax=soc_total_max, ymin=soc_total_min, fill="posterior"), alpha=0.3) +
+	geom_point(data=uncertainty_calibration_posterior$montecarlo, aes(y=soc_tha_30cm, color = "measured")) +
+	geom_line(data=uncertainty_calibration_posterior$median, aes(y=soc_total_tha, color = "median")) +
+	scale_color_manual(values = c("measured" = "black", "median" = "black"), limits = c("measured", "median")) +
+	scale_fill_manual(values = c("prior" = "red", "posterior" = "blue"), limits = c("prior", "posterior")) +
+	facet_wrap(vars(TrtID)) +
+	theme_bw() +
+	theme(aspect.ratio=1)
+
+ggsave(plot = ribbon_graph, filename = here(experiment_path,"uncertainty","uncertainty_ribbon.png"))
 
 ```
 

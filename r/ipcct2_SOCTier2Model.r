@@ -106,7 +106,7 @@ plig       = 3,
   ydiff      <- diff(years)
   yflag      <- sum(ydiff != 1)
   if(yflag != 0){
-    stop(paste("consecutive year needed for site ", SiteName, " and TreatmentID ", trt, sep = ""))
+    stop(paste0("consecutive year needed for site ", SiteData$site))
   }
   # check for columns headings
   cflag1 <- sum(!is.element(c("site", "year", "sand", "cinput", "ligfrac", "nfrac", "irrig", "till"), names(SiteData)))

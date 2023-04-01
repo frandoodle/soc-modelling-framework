@@ -141,7 +141,7 @@ gsa <- function(site_data,
 			purrr::map(~.$loglik) %>%
 			bind_rows
 		# Status
-		print(paste0("gsa: site ", site_n, "/", length(site_data), " (sample_size = ",sample_size,"method = ",method,")"))
+		print(paste0("gsa: site ", site_n, "/", length(site_data), " (sample_size = ",sample_size,", method = ",method,")"))
 	}
 	
 	Lkhood1 <- Lkhood_list %>%

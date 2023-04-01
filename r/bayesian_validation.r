@@ -5,8 +5,7 @@ validation <- function(model_return)
 	
 	y <- model_return %>%
 		group_by(SampleID) %>%
-		select(SampleID, Exp_ID, location_name, treatment_name, treatment_number, year, soc_total_tha, soc_tha_30cm) %>%
-		na.omit() %>%
+		drop_na(soc_tha_30cm) %>%
 		group_split
 	
 	yy <- y %>%
@@ -26,7 +25,7 @@ validation <- function(model_return)
 	yyy <- yy %>%
 		purrr::map(function(data) {
 			identifier <- data %>%
-				select(SampleID, Exp_ID, location_name, treatment_name, treatment_number) %>%
+				select(SampleID, TrtID) %>%
 				unique
 			
 			validation_stocks <- validation_calculate_stats(simulated = data[["soc_total_tha"]],
