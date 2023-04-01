@@ -156,7 +156,7 @@ site_data_intercropsum %>%
 	summarise(across(current_crop_columns, first),
 						across(residue_input_columns, mean),
 						across(fertilizer_columns, mean))
-	
+
 ```
 
 

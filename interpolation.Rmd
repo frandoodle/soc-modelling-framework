@@ -1,0 +1,65 @@
+---
+title: "Interpolation"
+output: html_notebook
+date: "2023-04-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data <- site_data_filtered_removedsites %>%
+	group_by(soil_depth_min_cm, soil_depth_max_cm) %>%
+	filter(TrtID == "E6_T13_CT_CR8",
+				 year_name==2009) %>%
+	select(TrtID, year_name, soc_tha, soil_depth_max_cm, soil_depth_min_cm) %>%
+	drop_na(soc_tha) %>%
+	# Calculate midpoint and calculate the average soc per cm for each measurement depth
+	mutate(midpoint = (soil_depth_min_cm + soil_depth_max_cm)/2,
+				 measured_cms = (soil_depth_max_cm - soil_depth_min_cm),
+				 soc_tha_per_cm = soc_tha/measured_cms)
+
+# How many cm's per interpolated result
+accuracy = 0.5
+
+#Conduct interpolation
+interp <- approx(x=data$midpoint,
+							y=data$soc_tha_per_cm,
+							rule=2, # Adds floor and ceiling from lowest and highest y values
+							xout=seq(from = min(data$soil_depth_min_cm)+(accuracy/2),
+											 to = max(data$soil_depth_max_cm)-(accuracy/2),
+											 by = accuracy))
+
+tibble(x=interp$x, y=interp$y)
+```
+
+Graph:
+```{r}
+ggplot(data=tibble(x= interp$x, y=interp$y)) +
+	geom_line(aes(x=x, y=y)) +
+	geom_point(data=data, aes(x=midpoint, y=soc_tha_per_cm)) +
+	  scale_x_continuous(limits = c(0, 30), breaks = seq(0, 30, 1)) +
+	theme_bw() +
+	ylab("SOC per cm") +
+	xlab("cm")
+```
+
+```{r}
+# The number of measures for each cm (0-1, 1-2, 2-3, ... 29-30)
+n_measures_per_cm <- length(min(data$soil_depth_min_cm):max(data$soil_depth_max_cm))
+# The number of points in the interpolation
+n_interpolation = length(interp$y)
+
+middle = (interp$y) * (n_measures_per_cm/n_interpolation)
+sum(c(middle))
+```
+
+The actual answer should be
+```{r}
+data %>%
+	filter((soil_depth_min_cm == 0 & soil_depth_max_cm == 15) |
+				 	(soil_depth_min_cm == 15 & soil_depth_max_cm == 30)) %>%
+	pull(soc_tha) %>%
+	sum
+```
