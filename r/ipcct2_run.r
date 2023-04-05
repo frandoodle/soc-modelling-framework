@@ -1,3 +1,7 @@
+# This is a wrapper script for running the IPCCT2 model
+# which lets us override parameters values, which is the
+# method we use to perform sensitivity analysis and parameter calibration
+
 library(here)
 source(here::here("r/ipcct2_SOCTier2Model.r"))
 

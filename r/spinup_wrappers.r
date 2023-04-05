@@ -1,3 +1,5 @@
+# Wrapper scripts to run the spinup
+
 source(here::here("r/ipcct2_run.r"))
 
 ipcct2_run_spinup <- function(site_data,

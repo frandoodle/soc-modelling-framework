@@ -1,3 +1,4 @@
+# Conduct uncertainty analysis given a distribution of parameter samples
 
 montecarlo <- function(site_data,
 											 climate_data,

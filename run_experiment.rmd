@@ -25,6 +25,9 @@ library(lubridate)
 library(tidyr)
 dir.create(tempdir()) # This fixes a bug if the temporary directory is not found
 here::i_am("walkthrough_icbm.rmd")
+
+source(here::here("r/combine_soc_depth_increments.r"))
+source(here::here("r/process_site_data.r"))
 source(here::here("r/icbm_calculate_re.r"))
 source(here::here("r/icbm_run.r"))
 source(here::here("r/read_climate_data.r"))
@@ -80,156 +83,39 @@ dir.create(here(experiment_path, "uncertainty"))
 ```
 
 
-# Input data
+# Get raw (unprocessed) input data
 
-## Get site data:
+## Site data:
 ```{r}
 # Read SLC polygon IDs
 polyids_all <- readr::read_csv(here("data","climate_data","Documentation", "SLC_PCPTREGION.csv"))
-# Read site data
-site_data <- readr::read_csv(here("data","LTE_Master_beta_mar29_addedcolumns.csv"), guess_max = Inf) %>%
-	select(-treatment_name) %>%
+# Read initial C DSM estimates
+initialc_dsm <- readr::read_csv(here("data/lte_soc_30_cm_dsm_expid.csv")) %>%
+	select(Exp_ID, initial_dsm = `Can_SOC30 (Mg ha-1)`) %>%
+	unique
+# Read site data and attach POLYIDs and initial C estimates
+site_data_raw <- readr::read_csv(here("data","LTE_Master_beta_mar29_addedcolumns.csv"), guess_max = Inf) %>%
 	left_join(polyids_all, by=c("latitude" = "Lat", "longitude" = "Long")) %>%
-	mutate(tillage = ifelse(is.na(tillage), "CT", tillage))
+	left_join(initialc_dsm, by=c("Exp_ID"))
 
 # Save to file
-readr::write_csv(site_data, file=here(experiment_path,"inputs", "site_data.csv"))
+readr::write_csv(site_data_raw, file=here(experiment_path,"inputs", "site_data_raw.csv"))
 ```
-## Add specific site values from lookup tables
-e.g. cinput_lignin_px
+# Process data
 
-## Remove sites where there are no measured values, or only 1 measured value
+Site data:
 ```{r}
-site_data_filtered <- site_data %>%
-	group_by(TrtID, replication_number, block) %>%
-	filter(!all(is.na(soc_tha))) %>%
-	filter(!sum(!is.na(soc_tha), na.rm=T) <= 1)
-```
+site_data_processed <- site_data_raw %>%
+	process_site_data
 
-Aggregate data about multiple crops
-(If there are multiple fields where each sequence of the rotation is being grown for the same year, we get the average yield/residue across each field/crop. If crops are grown on the SAME field, then we get the sum (e.g. cover crops))
-
-```{r}
-current_crop_columns = c("crop",
-												 "ICASA_code",
-												 "AAFC_code")
-
-yield_residue_columns <- c("grain_yield_kgha",
-													 "crop_residue_kgha",
-													 "hay_yield_kgha",
-													 "hay_residue_kgha",
-													 "root_biomass_kgha",
-													 "straw_biomass_kgha",
-													 "silage_yld_kgha",
-													 #"biomass_returned_kgha",
-													 "crop_residue_avg_kgha",
-													 "above_ground_residue_kgha",
-													 "roots_residue_kgha",
-													 "root_exudates_kgha",
-													 "manure_kgha")
-
-fertilizer_columns <- c("N_fertilizer_kgha",
-												"N_fertilizer_kgha_2",
-												"N_fertilizer_kgha_3",
-												"P_fertilizer_kgha",
-												"P_fertilizer_kgha_2",
-												"P_fertilizer_kgha_3",
-												"K_fertilizer_kgha",
-												"K_fertilizer_kgha_2",
-												"S_fertilizer_kgha",
-												"S_fertilizer_kgha_2")
-
-# Handle intercropping (same field)
-site_data_intercropsum <- site_data_filtered %>% 
-	group_by_all %>%
-	ungroup(!!current_crop_columns, !!yield_residue_columns, !!fertilizer_columns) %>%
-	summarise(across(current_crop_columns, first),
-						across(yield_residue_columns, sum),
-						across(fertilizer_columns, sum))
-
-# Handle rotation sequences
-site_data_rotationmean <- site_data_intercropsum %>%
-	group_by_all %>%
-	ungroup(plot_id, !!current_crop_columns, !!yield_residue_columns, !!fertilizer_columns) %>%
-	summarise(across(current_crop_columns, first),
-						across(yield_residue_columns, mean),
-						across(fertilizer_columns, mean))
-
-```
-
-
-Remove all sites that have too many rows per treatment per year.
-
-```{r message=FALSE, warning=FALSE}
-# List of experiments to remove because there are issues with them.
-# Select sites where there are over 1 row per trmt per year (per replication per block per sampling depth)
-offending_sites <- site_data_rotationmean %>%
-	group_by(TrtID, replication_number, block, year_name, soil_depth_min_cm, soil_depth_max_cm, soc_tha) %>%
-	tally() %>% #Gets the number of rows in the group
-	filter(n > 1) %>%
-	pull(TrtID) %>%
-	unique()
-
-warning(paste0("Removing sites ",paste0(offending_sites, collapse=", "), " due too many rows per treatment per year"))
-
-site_data_filtered_removedsites <- site_data_rotationmean %>%
-	group_by(TrtID, replication_number, block, year_name) %>%
-	filter(!TrtID %in% offending_sites)
-```
-
-
-## Calculate the SOC at 30cm depth
-
-Remove instances of overlapping sampling depths:
-```{r}
-site_data_filtered_removedsites %>%
-	group_by(TrtID, replication_number, block, year_name) %>%
-	filter(any(duplicated(soil_depth_min_cm)) | any(duplicated(soil_depth_max_cm))) %>%
-	filter(ifelse(length(is.na(soc_tha)) >= 1, !is.na(soc_tha), TRUE))
-```
-
-Get the total SOC down to lowest sampling depth by summing
-```{r}
-# Get the sum of measurement depths to get 0-lowest depth
-site_data_summed <- site_data_filtered_removedsites %>%
-	group_by(TrtID, replication_number, block, year_name) %>%
-	group_by_all() %>%
-	ungroup(soc_tha, bd_gcm3, soil_depth_max_cm, soil_depth_min_cm) %>%
-	summarise(lowest_depth = max(soil_depth_max_cm),
-						soc_tha_lowest_depth = sum(soc_tha))
-
-```
-
-Get estimates for initial C
-```{r}
-initialc_dsm <- readr::read_csv(here("data/lte_soc_30_cm_dsm.csv")) %>%
-	mutate(location_name = location_n) %>%
-	select(location_name, initial_dsm = `Can_SOC30 (Mg ha-1)`) %>%
-	unique
-```
-
-Add initial C estimate
-```{r}
-site_data_joined <- site_data_summed %>%
-	left_join(initialc_dsm, by=c("location_name"))
-```
-
-Correct SOC to 30cm:
-```{r}
-site_data_corrected <- site_data_joined %>%
-	group_by(TrtID, replication_number, block) %>%
-	mutate(lowest_depth_difference = 30 - lowest_depth,
-				 first_soc_treatment = first(na.omit(soc_tha_lowest_depth)),
-				 soc_dsm_difference = initial_dsm - first_soc_treatment,
-				 soc_tha_30cm = ifelse(lowest_depth_difference != 0,
-				 											soc_tha_lowest_depth + soc_dsm_difference,
-				 											soc_tha_lowest_depth))
+# Save to file
+readr::write_csv(site_data_processed, file=here(experiment_path,"inputs", "site_data_processed.csv"))
 ```
 
 
 ## Only select data associated with the driver:
 ```{r}
-site_data_driver <- site_data_corrected %>%
+site_data_driver <- site_data_processed %>%
 	filter(.data[[experiment_driver]] %in% experiment_driver_values)
 
 # Save to file
@@ -275,7 +161,7 @@ climate_data <- read_climate_data(climate_data_directory = here("data","climate_
 readr::write_csv(climate_data, file=here(experiment_path,"inputs","climate_data.csv"))
 ```
 
-## Parameter ranges used in sensitivity analysis and bayesian calibration:
+## Get parameter ranges used in sensitivity analysis and bayesian calibration:
 ```{r}
 param_bounds <- read.csv(here("data","ipcct2_parameters_gsa.csv"), stringsAsFactors = FALSE)
 

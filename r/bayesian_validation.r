@@ -1,13 +1,17 @@
+# Perform validation given a model return
+
 source(here::here("r/bayesian_validation_calculate_stats.r"))
 
 validation <- function(model_return)
 {
 	
+	#Split model return by sample ID
 	y <- model_return %>%
 		group_by(SampleID) %>%
 		drop_na(soc_tha_30cm) %>%
 		group_split
 	
+	# Calculate the cumulative and progressive delta SOC values
 	yy <- y %>%
 		purrr::map(function(data) {
 			data %>%
@@ -22,6 +26,8 @@ validation <- function(model_return)
 					 soc_total_tha_delta_progressive = ifelse(row_number() == 1, NA,soc_total_tha_delta_progressive),
 					 soc_tha_30cm_delta_progressive = ifelse(row_number() == 1, NA,soc_tha_30cm_delta_progressive))
 		})
+	
+	# Calculate validation statistics for each form of SOC
 	yyy <- yy %>%
 		purrr::map(function(data) {
 			identifier <- data %>%
@@ -49,6 +55,7 @@ validation <- function(model_return)
 		}) %>%
 		bind_rows
 	
+	# We return a list of SOC stocks, as well as the calculated validation statistics
 	return(list(stocks = bind_rows(yy),
 							validation = yyy))
 }

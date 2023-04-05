@@ -1,0 +1,70 @@
+Exp_ID,location_n,latitude,longitude,province,GG,SGG,Can_SOC30 (Mg ha-1)
+E35,Beaverlodge,55.18333333,-119.5333333,Alberta,Gray Luvisol,Orthic,47.7
+E44,Birch Hills,52.975,-105.416,Saskatchewan, , ,81.9
+E9,Breton,53.116667,-114.466667,Alberta,Gray Luvisol,Orthic,86.4
+E13,Breton,53.116667,-114.466667,Alberta,Gray Luvisol,Orthic,86.4
+E46,Breton,53.116667,-114.466667,Alberta,Gray Luvisol,Orthic,86.4
+E47,Breton,53.116667,-114.466667,Alberta,Gray Luvisol,Orthic,86.4
+E57,Breton,53.116667,-114.466667,Alberta,Gray Luvisol,Orthic,86.4
+E16,Delhi,42.83333333,-80.5,Ontario,Gray Brown Luvisol,Orthic,57.6
+E25,Delhi,42.83333333,-80.5,Ontario,Gray Brown Luvisol,Orthic,57.6
+E33,Dresden,42.594,-82.22,Ontario, , ,79.9
+E1,Ellerslie,53.41666667,-113.55,Alberta,Black Chernozem,Orthic,131.9
+E14,Ellerslie,53.41666667,-113.55,Alberta,Black Chernozem,Orthic,131.9
+E48,Ellerslie,53.41666667,-113.55,Alberta,Black Chernozem,Orthic,131.9
+E49,Ellerslie,53.41666667,-113.55,Alberta,Black Chernozem,Orthic,131.9
+E55,Ellerslie,53.41666667,-113.55,Alberta,Black Chernozem,Orthic,131.9
+E60,Elora,43.63333333,-80.41666667,Ontario,Melanic Brunisol, ,90.7
+E17,Elora,43.63333333,-80.41666667,Ontario,Melanic Brunisol, ,90.7
+E28,Elora,43.63333333,-80.41666667,Ontario,Melanic Brunisol, ,90.7
+E40,Elora,43.63333333,-80.41666667,Ontario,Melanic Brunisol, ,90.7
+E63,Fort Vermillion,55.18333333,-119.5333333,Alberta,Gray Luvisol,Orthic,47.7
+E62,Harrington,46.33333333,-63.16666667,Prince Edward Island,Gray Luvisol,Orthic,45.8
+E18,Harrington,46.33333333,-63.16666667,Prince Edward Island,Gray Luvisol,Orthic,45.8
+E2,Harrow,42.166667,-82.666667,Ontario,Luvic Gleysol,Orthic,74.2
+E26,Harrow,42.166667,-82.666667,Ontario,Luvic Gleysol,Orthic,74.2
+E15,Indian Head,50.53333333,-103.6666667,Saskatchewan,Black Chernozem,Orthic,61.1
+E41,Indian Head,50.53333333,-103.6666667,Saskatchewan,Black Chernozem,Orthic,61.1
+E70,Indian Head,50.53333333,-103.6666667,Saskatchewan,Black Chernozem,Orthic,61.1
+E20,La Pocatiere,47.33333333,-70,Quebec,Humic Gleysol,Orthic,65.1
+E37,La Pocatiere,47.33333333,-70,Quebec,Humic Gleysol,Orthic,65.1
+E61,L'Acadie,45.3,-73.35,Quebec,Humic Gleysol,Orthic,85.1
+E75,L'Acadie,45.3,-73.35,Quebec,Humic Gleysol,Orthic,85.1
+E4,Lethbridge,49.7,-112.8,Alberta,Dark Brown Chernozem,Orthic,91.5
+E5,Lethbridge,49.7,-112.8,Alberta,Dark Brown Chernozem,Orthic,91.5
+E12,Lethbridge,49.7,-112.8,Alberta,Dark Brown Chernozem,Orthic,91.5
+E29,Lethbridge,49.7,-112.8,Alberta,Dark Brown Chernozem,Orthic,91.5
+E36,Lethbridge,49.7,-112.8,Alberta,Dark Brown Chernozem,Orthic,91.5
+E38,Lethbridge,49.7,-112.8,Alberta,Dark Brown Chernozem,Orthic,91.5
+E43,Lethbridge,49.7,-112.8,Alberta,Dark Brown Chernozem,Orthic,91.5
+E50,Melfort,52.85,-104.6166667,Saskatchewan,Black Chernozem,Orthic,79.7
+E71,Melfort,52.85,-104.6166667,Saskatchewan,Black Chernozem,Orthic,79.7
+E21,Normandin,48.83333333,-72.66666667,Quebec,Humic Gleysol,Orthic,39.2
+E22,Normandin,48.83333333,-72.66666667,Quebec,Humic Gleysol,Orthic,39.2
+E23,Normandin,48.83333333,-72.66666667,Quebec,Humic Gleysol,Orthic,39.2
+E3,Ottawa,45.5,-75.666667,Ontario,Melanic Brunisol,Orthic,57.3
+E24,Ottawa,45.5,-75.666667,Ontario,Melanic Brunisol,Orthic,57.3
+E32,Paris,43.17,-80.41,Ontario, , ,75.5
+E51,Ridgetown,42.43333333,-81.88333333,Ontario,Humic Gleysol,Orthic,69.3
+E52,Ridgetown,42.43333333,-81.88333333,Ontario,Humic Gleysol,Orthic,69.3
+E8,Scott,52.366667,-108.833333,Saskatchewan,Dark Brown Chernozem,Orthic,53.7
+E54,Scott,52.366667,-108.833333,Saskatchewan,Dark Brown Chernozem,Orthic,53.7
+E69,Scott,52.366667,-108.833333,Saskatchewan,Dark Brown Chernozem,Orthic,53.7
+E45,Star City,52.86666667,-104.3333333,Saskatchewan,Gray Luvisol,Orthic,82.4
+E64,Star City,52.86666667,-104.3333333,Saskatchewan,Gray Luvisol,Orthic,82.4
+E73,Star City,52.86666667,-104.3333333,Saskatchewan,Gray Luvisol,Orthic,82.4
+E10,Stewart Valley,50.6,-107.8,Saskatchewan,Brown Chernozem, ,45.4
+E68,Stewart Valley,50.6,-107.8,Saskatchewan,Brown Chernozem, ,45.4
+E34,Strathroy,42.963,-81.656,Ontario, , ,76.4
+E6,Swift Current Old,50.25,-107.8,Saskatchewan,Brown Chernozem,Orthic,46.9
+E7,Swift Current New,50.26666667,-107.7333333,Saskatchewan,Brown Chernozem,Orthic,46.8
+E11,Swift Current New,50.26666667,-107.7333333,Saskatchewan,Brown Chernozem,Orthic,46.8
+E53,Swift Current New,50.26666667,-107.7333333,Saskatchewan,Brown Chernozem,Orthic,46.8
+E67,Swift Current New,50.26666667,-107.7333333,Saskatchewan,Brown Chernozem,Orthic,46.8
+E72,Swift Current New,50.26666667,-107.7333333,Saskatchewan,Brown Chernozem,Orthic,46.8
+E31,Thorndale,43.11,-81.138,Ontario, , ,77
+E56,Three Hills,51.702,-113.292,Alberta, , ,102.8
+E58,Woodslee,42.21666667,-82.75, Ontario,Humic Gleysol,Orthic,76.5
+E59,Woodslee,42.21666667,-82.75, Ontario,Humic Gleysol,Orthic,76.5
+E65,Woodslee,42.21666667,-82.75, Ontario,Humic Gleysol,Orthic,76.5
+E66,Woodslee,42.21666667,-82.75, Ontario,Humic Gleysol,Orthic,76.5

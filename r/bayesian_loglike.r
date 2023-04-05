@@ -1,3 +1,6 @@
+# Scripts for calculating log-likelihood values, for use in Bayesian parameter calibration
+
+# Calculate log-likelihood given modelled and observed values
 loglik=function(m,o){
   if(length(m)!=length(o)){
      print("Inequal number of modeled and observed values, cannot proceed")
@@ -29,7 +32,9 @@ run_ipcct2_calculate_loglik <- function(site_data,
 														 parameters))
 	actuals <-  site_data %>%
 		mutate(POLYID = as.character(POLYID)) %>%
-		select(site = POLYID, year = year_name,  actual = soc_tha_30cm)
+		select(site = POLYID,
+					 year = year_name,
+					 actual = soc_tha_30cm)
 	
 	model_actual <- modelled %>%
 		full_join(actuals, by=c("site", "year")) %>%

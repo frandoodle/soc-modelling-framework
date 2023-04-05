@@ -1,3 +1,4 @@
+# This script performs spinup according to the methodology required by FAO
 
 source(here::here("r/spinup_wrappers.r"))
 
