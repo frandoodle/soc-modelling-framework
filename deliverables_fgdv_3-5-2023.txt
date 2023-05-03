@@ -1,0 +1,7 @@
+This is a list of deliverables which Francis Durnin-Vermette contributed to for the period of Oct 12 - Apr 30 during two casual work contracts with AAFC.
+
+- Created an R implementation of the Holos ICBM Re calculation, which was originally written in C#. Aru had already written an implementation of ICBM in R, but without Re, so this allows ICBM to be completely run in R.
+- Suggested changes to long-term SOC database, such as a unique treatment ID column, removing duplicated rows in some experiments, and more systematic reporting of tillage, treatment name, etc.
+- Created a skeleton framework for calibrating and running SOC models on the long-term dataset using a Bayesian approach as outlined by Gurung et al., 2022. The framework works for the IPCCT2 model, but it is designed to be easily amenable for any SOC model with an interface implemented in R.
+- Created documentation for the above deliverables through comments directly in the code, or walkthroughs using R Notebooks where each step of the calculation is explained and spelled out.
+- Gave two presentations to other members of AAFC and ECCC in which I 1) explained how the IPCCT2 model works, and 2) explained the Holos Re calculation, as well as my design decisions and next steps for the SOC model calibration framework.

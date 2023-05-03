@@ -157,6 +157,33 @@ evaluation_data %>%
 ```{r}
 climate_data <- read_climate_data(climate_data_directory = here("data","climate_data","W9param_TablesCleaned"))
 
+gorby <- climate_data %>%
+	group_by(POLYID) %>%
+	summarise(first_climate_year = first(Year))
+	
+
+site_data_raw %>%
+	mutate(POLYID = as.character(POLYID)) %>%
+	group_by(Exp_ID, POLYID) %>%
+	summarise(location_name = first(location_name),
+		n = n(),
+						n_soc_tha = sum(!is.na(soc_tha)),
+						n_crop_residue_kgha = sum(!is.na(crop_residue_kgha),
+																			!is.na(hay_residue_kgha)),
+						first_site_year = first(year_name)) %>%
+	left_join(gorby, by="POLYID") %>%
+	select(-POLYID) %>%
+	write_csv(file="ExpID_summary.csv")
+
+site_data_raw %>%
+	group_by(TrtID) %>%
+	summarise(location_name = first(location_name),
+						n = n(),
+						n_soc_tha = sum(!is.na(soc_tha)),
+						n_crop_residue_kgha = sum(!is.na(crop_residue_kgha),
+																			!is.na(hay_residue_kgha))) %>%
+	write_csv(file="TrtID_summary.csv")
+
 # Save to file
 readr::write_csv(climate_data, file=here(experiment_path,"inputs","climate_data.csv"))
 ```

@@ -1,0 +1,76 @@
+Exp_ID,location_name,n,n_soc_tha,n_crop_residue_kgha,first_site_year,first_climate_year
+E1,Ellerslie,216,24,216,1983,1981
+E10,"Stewart Valley, Saskatchewan",44,4,0,1982,NA
+E11,"Swift Current, Saskatchewan",44,4,0,1982,NA
+E12,"Lethbridge, Alberta",64,4,0,1976,NA
+E13,"Breton, Alberta",22,2,0,1979,NA
+E14,"Ellersie, Alberta",22,2,0,1979,NA
+E15,"Indian Head, Saskatchewan",60,6,60,1987,NA
+E16,"Delhi, Ontario",12,2,0,1988,NA
+E17,"Elora, Ontario",58,2,0,1967,NA
+E18,"Harrington, Prince Edward Island",16,2,0,1987,NA
+E19,"Charlottetown, Prince Edward Island",16,2,0,1987,NA
+E2,Harrow,798,36,798,2004,1981
+E20,"La Pocatiere, Quebec",12,2,0,1989,NA
+E21,"Normandin, Quebec",8,2,0,1991,NA
+E22,"Normandin, Quebec",6,2,0,1992,NA
+E23,"Normandin, Quebec",6,2,0,1992,NA
+E24,"Ottawa, Ontario",10,2,0,1990,NA
+E25,"Delhi, Ontario",8,2,0,1991,NA
+E26,"Harrow, Ontario",22,2,0,1984,NA
+E27,"Charlottetown, Prince Edward Island",12,2,0,1983,NA
+E28,"Elora, Ontario",40,2,0,1980,NA
+E29,"Lethbridge, Alberta",16,4,0,1994,NA
+E3,Ottawa,78,10,0,1992,1981
+E30,"Charlottetown, Prince Edward Island",16,2,0,1985,NA
+E31,"Thorndale, Ontario",30,2,0,1985,NA
+E32,"Paris, Ontario",30,2,0,1985,NA
+E33,"Dresden, Ontario",30,2,0,1985,NA
+E34,"Strathroy, Ontario",30,2,0,1985,NA
+E35,"Beaverlodge, Alberta",14,2,0,1991,NA
+E36,"Lethbridge, Alberta",48,2,0,1968,NA
+E37,"La Pocatiere, Quebec",16,2,0,1987,NA
+E38,"Lethbridge, Alberta",18,2,0,1986,NA
+E39,"Charlottetown, Prince Edward Island",6,2,0,1982,NA
+E4,Lethbridge,26144,828,5784,1951,1981
+E40,"Elora, Ontario",38,2,0,1969,NA
+E41,"Indian Head, Saskatchewan",24,6,0,1986,NA
+E42,"Bow River, Alberta",24,2,0,2000,NA
+E43,"Lethbridge, Alberta",94,2,0,1968,NA
+E44,"Birch Hills, Saskatchewan",10,2,0,2000,NA
+E45,"Star City, Saskatchewan",10,2,0,2000,NA
+E46,"Breton, Alberta",38,2,0,1980,NA
+E47,"Breton, Alberta",54,2,0,1980,NA
+E48,"Ellerslie, Alberta",38,2,38,1980,NA
+E49,"Ellerslie, Alberta",54,2,54,1980,NA
+E5,Lethbridge,5184,300,0,1912,1981
+E50,"Melfort, Saskatchewan",48,6,0,1994,NA
+E51,"Ridgetown, Ontario",30,2,0,1991,NA
+E52,"Ridgetown, Ontario",110,10,0,1995,NA
+E53,"Swift Current, Saskatchewan",92,4,0,1982,NA
+E54,"Scott, Saskatchewan",144,6,0,1981,NA
+E55,"Ellerslie, Alberta",52,2,0,1980,NA
+E56,"Three Hills, Alberta",22,2,0,1991,NA
+E57,"Breton, Alberta",52,2,0,1980,NA
+E58,"Woodslee,  Ontario",88,4,0,1993,NA
+E59,"Woodslee,  Ontario",24,2,0,1993,NA
+E6,Swift Current Old,5508,702,0,1967,1981
+E60,"Elora,  Ontario",50,2,0,1980,NA
+E61,"L'Acadie, Quebec",26,2,0,1992,NA
+E62,"Harrigton, Prince Edward Island",40,2,0,1985,NA
+E63,"Fort Vermillion, Alberta",96,8,96,1992,NA
+E64,"Star City, Saskatchewan",8,2,0,1998,NA
+E65,"Woodslee,  Ontario",58,2,0,1982,NA
+E66,"Woodslee,  Ontario",32,2,0,1993,NA
+E67,"Swift Current, Saskatchewan",48,4,0,1982,NA
+E68,"Stewart Valley, Saskatchewan",44,2,0,1982,NA
+E69,"Scott, Saskatchewan",96,6,0,1979,NA
+E7,Swift Current New,2852,551,0,1987,1981
+E70,"Indian Head, Saskatchewan",48,6,0,1986,NA
+E71,"Melfort, Saskatchewan",50,2,0,1970,NA
+E72,"Swift Current, Saskatchewan",44,4,0,1983,NA
+E73,"Star City, Saskatchewan",16,2,0,1998,NA
+E74,"Charlottetown, Prince Edward Island",32,2,0,1989,NA
+E75,"L'Acadie, Quebec",26,2,0,1992,NA
+E8,Scott,3078,174,0,1995,1981
+E9,Breton,11790,0,752,1929,1981

@@ -1,0 +1,430 @@
+TrtID,location_name,n,n_soc_tha,n_crop_residue_kgha
+E1_F0NS_CT_CR1,Ellerslie,14,2,14
+E1_F0NS_CT_CR2,Ellerslie,3,0,3
+E1_F0NS_CT_CR3,Ellerslie,9,1,9
+E1_F0NS_CT_CR4,Ellerslie,1,0,1
+E1_F0S_CT_CR1,Ellerslie,14,2,14
+E1_F0S_CT_CR2,Ellerslie,3,0,3
+E1_F0S_CT_CR3,Ellerslie,9,1,9
+E1_F0S_CT_CR4,Ellerslie,1,0,1
+E1_F25NS_CT_CR1,Ellerslie,14,2,14
+E1_F25NS_CT_CR2,Ellerslie,3,0,3
+E1_F25NS_CT_CR3,Ellerslie,9,1,9
+E1_F25NS_CT_CR4,Ellerslie,1,0,1
+E1_F25S_CT_CR1,Ellerslie,14,2,14
+E1_F25S_CT_CR2,Ellerslie,3,0,3
+E1_F25S_CT_CR3,Ellerslie,9,1,9
+E1_F25S_CT_CR4,Ellerslie,1,0,1
+E1_F50NS_CT_CR1,Ellerslie,14,2,14
+E1_F50NS_CT_CR2,Ellerslie,3,0,3
+E1_F50NS_CT_CR3,Ellerslie,9,1,9
+E1_F50NS_CT_CR4,Ellerslie,1,0,1
+E1_F50S_CT_CR1,Ellerslie,14,2,14
+E1_F50S_CT_CR2,Ellerslie,3,0,3
+E1_F50S_CT_CR3,Ellerslie,9,1,9
+E1_F50S_CT_CR4,Ellerslie,1,0,1
+E1_F75NS_CT_CR1,Ellerslie,14,2,14
+E1_F75NS_CT_CR2,Ellerslie,3,0,3
+E1_F75NS_CT_CR3,Ellerslie,9,1,9
+E1_F75NS_CT_CR4,Ellerslie,1,0,1
+E1_F75S_CT_CR1,Ellerslie,14,2,14
+E1_F75S_CT_CR2,Ellerslie,3,0,3
+E1_F75S_CT_CR3,Ellerslie,9,1,9
+E1_F75S_CT_CR4,Ellerslie,1,0,1
+E10_CT_CR1,"Stewart Valley, Saskatchewan",11,1,0
+E10_CT_CR2,"Stewart Valley, Saskatchewan",11,1,0
+E10_NT_CR1,"Stewart Valley, Saskatchewan",11,1,0
+E10_NT_CR2,"Stewart Valley, Saskatchewan",11,1,0
+E11_CT_CR1,"Swift Current, Saskatchewan",11,1,0
+E11_CT_CR2,"Swift Current, Saskatchewan",11,1,0
+E11_NT_CR1,"Swift Current, Saskatchewan",11,1,0
+E11_NT_CR2,"Swift Current, Saskatchewan",11,1,0
+E12_CT_CR1,"Lethbridge, Alberta",16,1,0
+E12_CT_CR2,"Lethbridge, Alberta",16,1,0
+E12_NT_CR1,"Lethbridge, Alberta",16,1,0
+E12_NT_CR2,"Lethbridge, Alberta",16,1,0
+E13_CT_CR3,"Breton, Alberta",11,1,0
+E13_NT_CR3,"Breton, Alberta",11,1,0
+E14_CT_CR3,"Ellersie, Alberta",11,1,0
+E14_NT_CR3,"Ellersie, Alberta",11,1,0
+E15_CT_CR1,"Indian Head, Saskatchewan",10,1,10
+E15_CT_CR2,"Indian Head, Saskatchewan",10,1,10
+E15_CT_CR4,"Indian Head, Saskatchewan",10,1,10
+E15_NT_CR1,"Indian Head, Saskatchewan",10,1,10
+E15_NT_CR2,"Indian Head, Saskatchewan",10,1,10
+E15_NT_CR4,"Indian Head, Saskatchewan",10,1,10
+E16_CT_CR5,"Delhi, Ontario",6,1,0
+E16_NT_CR5,"Delhi, Ontario",6,1,0
+E17_CT_CR5,"Elora, Ontario",29,1,0
+E17_NT_CR5,"Elora, Ontario",29,1,0
+E18_CT_CR6,"Harrington, Prince Edward Island",8,1,0
+E18_NT_CR6,"Harrington, Prince Edward Island",8,1,0
+E19_CT_CR6,"Charlottetown, Prince Edward Island",8,1,0
+E19_NT_CR6,"Charlottetown, Prince Edward Island",8,1,0
+E2_F1_CR1,Harrow,42,9,42
+E2_F10_CR1,Harrow,42,0,42
+E2_F11_CR1,Harrow,42,0,42
+E2_F12_CR1,Harrow,42,0,42
+E2_F13_CR1,Harrow,42,0,42
+E2_F14_CR1,Harrow,42,0,42
+E2_F15_CR1,Harrow,42,0,42
+E2_F16_CR1,Harrow,42,0,42
+E2_F17_CR1,Harrow,42,0,42
+E2_F18_CR1,Harrow,42,0,42
+E2_F19_CR1,Harrow,42,0,42
+E2_F2_CR1,Harrow,42,9,42
+E2_F3_CR1,Harrow,42,9,42
+E2_F4_CR1,Harrow,42,9,42
+E2_F5_CR1,Harrow,42,0,42
+E2_F6_CR1,Harrow,42,0,42
+E2_F7_CR1,Harrow,42,0,42
+E2_F8_CR1,Harrow,42,0,42
+E2_F9_CR1,Harrow,42,0,42
+E20_CT_CR3,"La Pocatiere, Quebec",6,1,0
+E20_NT_CR3,"La Pocatiere, Quebec",6,1,0
+E21_CT_CR3,"Normandin, Quebec",4,1,0
+E21_NT_CR3,"Normandin, Quebec",4,1,0
+E22_CT_CR3,"Normandin, Quebec",3,1,0
+E22_NT_CR3,"Normandin, Quebec",3,1,0
+E23_CT_CR3,"Normandin, Quebec",3,1,0
+E23_NT_CR3,"Normandin, Quebec",3,1,0
+E24_CT_CR5,"Ottawa, Ontario",5,1,0
+E24_NT_CR5,"Ottawa, Ontario",5,1,0
+E25_CT_CR5,"Delhi, Ontario",4,1,0
+E25_NT_CR5,"Delhi, Ontario",4,1,0
+E26_CT_CR5,"Harrow, Ontario",11,1,0
+E26_NT_CR5,"Harrow, Ontario",11,1,0
+E27_CT_CR7,"Charlottetown, Prince Edward Island",6,1,0
+E27_NT_CR7,"Charlottetown, Prince Edward Island",6,1,0
+E28_CT_CR8,"Elora, Ontario",20,1,0
+E28_NT_CR8,"Elora, Ontario",20,1,0
+E29_CT_CR10,"Lethbridge, Alberta",4,1,0
+E29_CT_CR9,"Lethbridge, Alberta",4,1,0
+E29_NT_CR10,"Lethbridge, Alberta",4,1,0
+E29_NT_CR9,"Lethbridge, Alberta",4,1,0
+E3_0_CR1,Ottawa,26,4,0
+E3_100_CR1,Ottawa,26,3,0
+E3_200_CR1,Ottawa,26,3,0
+E30_CT_CR11,"Charlottetown, Prince Edward Island",3,0,0
+E30_CT_CR12,"Charlottetown, Prince Edward Island",2,0,0
+E30_CT_CR13,"Charlottetown, Prince Edward Island",3,1,0
+E30_NT_CR11,"Charlottetown, Prince Edward Island",3,0,0
+E30_NT_CR12,"Charlottetown, Prince Edward Island",2,0,0
+E30_NT_CR13,"Charlottetown, Prince Edward Island",3,1,0
+E31_CT_CR14,"Thorndale, Ontario",15,1,0
+E31_NT_CR14,"Thorndale, Ontario",15,1,0
+E32_CT_CR14,"Paris, Ontario",15,1,0
+E32_NT_CR14,"Paris, Ontario",15,1,0
+E33_CT_CR14,"Dresden, Ontario",15,1,0
+E33_NT_CR14,"Dresden, Ontario",15,1,0
+E34_CT_CR14,"Strathroy, Ontario",15,1,0
+E34_NT_CR14,"Strathroy, Ontario",15,1,0
+E35_CT_CR15,"Beaverlodge, Alberta",7,1,0
+E35_NT_CR15,"Beaverlodge, Alberta",7,1,0
+E36_CT_CR2,"Lethbridge, Alberta",24,1,0
+E36_NT_CR2,"Lethbridge, Alberta",24,1,0
+E37_CT_CR16,"La Pocatiere, Quebec",4,1,0
+E37_CT_CR3,"La Pocatiere, Quebec",4,0,0
+E37_NT_CR16,"La Pocatiere, Quebec",4,1,0
+E37_NT_CR3,"La Pocatiere, Quebec",4,0,0
+E38_CT_CR17,"Lethbridge, Alberta",9,1,0
+E38_NT_CR17,"Lethbridge, Alberta",9,1,0
+E39_CT_CR18,"Charlottetown, Prince Edward Island",3,1,0
+E39_NT_CR18,"Charlottetown, Prince Edward Island",3,1,0
+E4_1_RT_CR12,Lethbridge,864,44,108
+E4_10_RT_CR3,Lethbridge,288,12,108
+E4_101_RT_CR12,Lethbridge,160,0,96
+E4_102_RT_CR2,Lethbridge,128,0,96
+E4_103_RT_CR2,Lethbridge,128,0,96
+E4_104_RT_CR3,Lethbridge,144,0,96
+E4_105_RT_CR3,Lethbridge,128,0,96
+E4_106_RT_CR3,Lethbridge,144,0,96
+E4_107_RT_CR12,Lethbridge,160,0,96
+E4_108_RT_CR2,Lethbridge,128,0,96
+E4_109_RT_CR2,Lethbridge,128,0,92
+E4_11_RT_CR3,Lethbridge,288,12,96
+E4_110_RT_CR3,Lethbridge,144,0,96
+E4_111_RT_CR3,Lethbridge,144,0,96
+E4_112_RT_CR3,Lethbridge,128,0,96
+E4_113_RT_CR8,Lethbridge,96,0,96
+E4_114_RT_CR8,Lethbridge,96,0,96
+E4_115_RT_CR9,Lethbridge,160,0,92
+E4_116_RT_CR9,Lethbridge,160,0,92
+E4_117_RT_CR9,Lethbridge,160,0,96
+E4_118_RT_CR3,Lethbridge,144,0,96
+E4_119_RT_CR3,Lethbridge,128,0,92
+E4_12_RT_CR3,Lethbridge,288,12,112
+E4_120_RT_CR3,Lethbridge,144,0,96
+E4_121_NT_CR5,Lethbridge,16,0,0
+E4_121_RT_CR5,Lethbridge,128,0,96
+E4_122_NT_CR5,Lethbridge,16,0,0
+E4_122_RT_CR5,Lethbridge,112,0,96
+E4_123_RT_CR5,Lethbridge,128,0,96
+E4_124_RT_CR5,Lethbridge,128,0,96
+E4_125_RT_CR5,Lethbridge,128,0,96
+E4_126_NT_CR5,Lethbridge,16,0,0
+E4_126_RT_CR5,Lethbridge,128,0,92
+E4_127_RT_CR12,Lethbridge,96,0,96
+E4_128_RT_CR12,Lethbridge,96,0,96
+E4_129_RT_CR10,Lethbridge,96,0,92
+E4_13_RT_CR8,Lethbridge,256,12,96
+E4_130_NT_CR7,Lethbridge,48,0,0
+E4_131_RT_CR11,Lethbridge,64,0,0
+E4_132_RT_CR11,Lethbridge,64,0,0
+E4_133_RT_CR11,Lethbridge,64,0,0
+E4_134_RT_CR1,Lethbridge,64,0,0
+E4_14_RT_CR8,Lethbridge,240,12,112
+E4_15_RT_CR9,Lethbridge,304,12,108
+E4_16_RT_CR9,Lethbridge,320,12,96
+E4_17_RT_CR9,Lethbridge,320,12,112
+E4_18_RT_CR3,Lethbridge,832,44,96
+E4_19_RT_CR3,Lethbridge,832,44,108
+E4_2_RT_CR2,Lethbridge,816,44,96
+E4_20_RT_CR3,Lethbridge,832,44,108
+E4_21_NT_CR5,Lethbridge,128,16,0
+E4_21_RT_CR5,Lethbridge,704,28,96
+E4_22_NT_CR5,Lethbridge,128,8,0
+E4_22_RT_CR5,Lethbridge,704,36,108
+E4_23_NT_CR5,Lethbridge,112,0,0
+E4_23_RT_CR5,Lethbridge,704,44,112
+E4_24_NT_CR5,Lethbridge,112,0,0
+E4_24_RT_CR5,Lethbridge,704,44,92
+E4_25_NT_CR5,Lethbridge,128,0,0
+E4_25_RT_CR5,Lethbridge,688,44,96
+E4_26_NT_CR5,Lethbridge,128,20,0
+E4_26_RT_CR5,Lethbridge,704,24,96
+E4_27_RT_CR12,Lethbridge,256,12,112
+E4_28_RT_CR12,Lethbridge,256,12,112
+E4_29_RT_CR10,Lethbridge,208,12,96
+E4_3_RT_CR2,Lethbridge,816,44,108
+E4_30_NT_CR7,Lethbridge,48,0,0
+E4_31_RT_CR11,Lethbridge,64,0,0
+E4_32_RT_CR11,Lethbridge,64,0,0
+E4_33_RT_CR11,Lethbridge,64,0,0
+E4_34_RT_CR1,Lethbridge,64,0,0
+E4_35_NT_CR4,Lethbridge,80,0,0
+E4_35_RT_CR4,Lethbridge,464,0,0
+E4_36_NT_CR4,Lethbridge,96,0,0
+E4_36_RT_CR4,Lethbridge,448,0,0
+E4_37_NT_CR4,Lethbridge,96,0,0
+E4_37_RT_CR4,Lethbridge,448,0,0
+E4_38_NT_CR4,Lethbridge,96,0,0
+E4_38_RT_CR4,Lethbridge,448,0,0
+E4_39_NT_CR4,Lethbridge,96,0,0
+E4_39_RT_CR4,Lethbridge,448,0,0
+E4_4_RT_CR3,Lethbridge,832,44,96
+E4_40_NT_CR4,Lethbridge,80,0,0
+E4_40_RT_CR4,Lethbridge,464,0,0
+E4_41_RT_CR6,Lethbridge,544,0,0
+E4_42_RT_CR6,Lethbridge,544,0,0
+E4_43_RT_CR6,Lethbridge,544,0,0
+E4_44_RT_CR12,Lethbridge,480,0,0
+E4_5_RT_CR3,Lethbridge,832,44,112
+E4_6_RT_CR3,Lethbridge,832,44,112
+E4_7_RT_CR12,Lethbridge,320,12,112
+E4_8_RT_CR2,Lethbridge,272,12,96
+E4_9_RT_CR2,Lethbridge,272,12,112
+E40_CT_CR5,"Elora, Ontario",19,1,0
+E40_NT_CR5,"Elora, Ontario",19,1,0
+E41_CT_CR19,"Indian Head, Saskatchewan",4,1,0
+E41_CT_CR20,"Indian Head, Saskatchewan",4,1,0
+E41_CT_CR21,"Indian Head, Saskatchewan",4,1,0
+E41_NT_CR19,"Indian Head, Saskatchewan",4,1,0
+E41_NT_CR20,"Indian Head, Saskatchewan",4,1,0
+E41_NT_CR21,"Indian Head, Saskatchewan",4,1,0
+E42_CT_CR1,"Bow River, Alberta",12,1,0
+E42_NT_CR1,"Bow River, Alberta",12,1,0
+E43_CT_CR2,"Lethbridge, Alberta",47,1,0
+E43_NT_CR2,"Lethbridge, Alberta",47,1,0
+E44_CT_CR22,"Birch Hills, Saskatchewan",5,1,0
+E44_NT_CR22,"Birch Hills, Saskatchewan",5,1,0
+E45_CT_CR22,"Star City, Saskatchewan",5,1,0
+E45_NT_CR22,"Star City, Saskatchewan",5,1,0
+E46_CT_CR23,"Breton, Alberta",19,1,0
+E46_NT_CR23,"Breton, Alberta",19,1,0
+E47_CT_CR23,"Breton, Alberta",27,1,0
+E47_NT_CR23,"Breton, Alberta",27,1,0
+E48_CT_CR24,"Ellerslie, Alberta",10,1,10
+E48_CT_CR3,"Ellerslie, Alberta",9,0,9
+E48_NT_CR24,"Ellerslie, Alberta",10,1,10
+E48_NT_CR3,"Ellerslie, Alberta",9,0,9
+E49_CT_CR24,"Ellerslie, Alberta",18,1,18
+E49_CT_CR3,"Ellerslie, Alberta",9,0,9
+E49_NT_CR24,"Ellerslie, Alberta",18,1,18
+E49_NT_CR3,"Ellerslie, Alberta",9,0,9
+E5_N0P0_RT_CR1,Lethbridge,216,13,0
+E5_N0P0_RT_CR2,Lethbridge,432,26,0
+E5_N0P0_RT_CR3,Lethbridge,72,6,0
+E5_N0P0_RT_CR4,Lethbridge,576,33,0
+E5_N0P20_RT_CR1,Lethbridge,216,12,0
+E5_N0P20_RT_CR2,Lethbridge,432,24,0
+E5_N0P20_RT_CR3,Lethbridge,72,6,0
+E5_N0P20_RT_CR4,Lethbridge,576,30,0
+E5_N45P0_RT_CR1,Lethbridge,216,13,0
+E5_N45P0_RT_CR2,Lethbridge,432,26,0
+E5_N45P0_RT_CR3,Lethbridge,72,6,0
+E5_N45P0_RT_CR4,Lethbridge,576,33,0
+E5_N45P20_RT_CR1,Lethbridge,216,12,0
+E5_N45P20_RT_CR2,Lethbridge,432,24,0
+E5_N45P20_RT_CR3,Lethbridge,72,6,0
+E5_N45P20_RT_CR4,Lethbridge,576,30,0
+E50_CT_CR25,"Melfort, Saskatchewan",8,1,0
+E50_CT_CR26,"Melfort, Saskatchewan",8,1,0
+E50_CT_CR27,"Melfort, Saskatchewan",8,1,0
+E50_NT_CR25,"Melfort, Saskatchewan",8,1,0
+E50_NT_CR26,"Melfort, Saskatchewan",8,1,0
+E50_NT_CR27,"Melfort, Saskatchewan",8,1,0
+E51_CT_CR28,"Ridgetown, Ontario",15,1,0
+E51_NT_CR28,"Ridgetown, Ontario",15,1,0
+E52_CT_CR28,"Ridgetown, Ontario",11,1,0
+E52_CT_CR29,"Ridgetown, Ontario",11,1,0
+E52_CT_CR30,"Ridgetown, Ontario",11,1,0
+E52_CT_CR31,"Ridgetown, Ontario",11,1,0
+E52_CT_CR5,"Ridgetown, Ontario",11,1,0
+E52_NT_CR28,"Ridgetown, Ontario",11,1,0
+E52_NT_CR29,"Ridgetown, Ontario",11,1,0
+E52_NT_CR30,"Ridgetown, Ontario",11,1,0
+E52_NT_CR31,"Ridgetown, Ontario",11,1,0
+E52_NT_CR5,"Ridgetown, Ontario",11,1,0
+E53_CT_CR2,"Swift Current, Saskatchewan",46,2,0
+E53_NT_CR2,"Swift Current, Saskatchewan",46,2,0
+E54_CT_CR32,"Scott, Saskatchewan",24,1,0
+E54_CT_CR33,"Scott, Saskatchewan",24,1,0
+E54_CT_CR34,"Scott, Saskatchewan",24,1,0
+E54_NT_CR32,"Scott, Saskatchewan",24,1,0
+E54_NT_CR33,"Scott, Saskatchewan",24,1,0
+E54_NT_CR34,"Scott, Saskatchewan",24,1,0
+E55_CT_CR3,"Ellerslie, Alberta",26,1,0
+E55_NT_CR3,"Ellerslie, Alberta",26,1,0
+E56_CT_CR1,"Three Hills, Alberta",11,1,0
+E56_NT_CR1,"Three Hills, Alberta",11,1,0
+E57_CT_CR3,"Breton, Alberta",26,1,0
+E57_NT_CR3,"Breton, Alberta",26,1,0
+E58_CT_CR35,"Woodslee,  Ontario",22,1,0
+E58_CT_CR5,"Woodslee,  Ontario",22,1,0
+E58_NT_CR35,"Woodslee,  Ontario",22,1,0
+E58_NT_CR5,"Woodslee,  Ontario",22,1,0
+E59_CT_CR8,"Woodslee,  Ontario",12,1,0
+E59_NT_CR8,"Woodslee,  Ontario",12,1,0
+E6_T1_CT_CR1,Swift Current Old,612,78,0
+E6_T10_CT_CR8,Swift Current Old,144,24,0
+E6_T11_CT_CR9,Swift Current Old,216,18,0
+E6_T12_CT_CR7,Swift Current Old,252,36,0
+E6_T13_CT_CR8,Swift Current Old,144,24,0
+E6_T14_CT_CR10,Swift Current Old,204,26,0
+E6_T15_CT_CR10,Swift Current Old,48,2,0
+E6_T16_CT_CR11,Swift Current Old,156,24,0
+E6_T17_CT_CR12,Swift Current Old,48,2,0
+E6_T18_CT_CR11,Swift Current Old,156,24,0
+E6_T19_CT_CR13,Swift Current Old,408,52,0
+E6_T2_CT_CR1,Swift Current Old,612,78,0
+E6_T20_CT_CR10,Swift Current Old,204,26,0
+E6_T3_CT_CR2,Swift Current Old,612,78,0
+E6_T4_CT_CR3,Swift Current Old,204,12,0
+E6_T5_CT_CR4,Swift Current Old,108,12,0
+E6_T6_CT_CR5,Swift Current Old,300,54,0
+E6_T7_CT_CR1,Swift Current Old,612,78,0
+E6_T8_CT_CR6,Swift Current Old,216,18,0
+E6_T9_CT_CR7,Swift Current Old,252,36,0
+E60_CT_CR36,"Elora,  Ontario",25,1,0
+E60_NT_CR36,"Elora,  Ontario",25,1,0
+E61_CT_CR37,"L'Acadie, Quebec",6,0,0
+E61_CT_CR8,"L'Acadie, Quebec",20,2,0
+E62_CT_CR38,"Harrigton, Prince Edward Island",20,1,0
+E62_NT_CR38,"Harrigton, Prince Edward Island",20,1,0
+E63_CT_CR39,"Fort Vermillion, Alberta",12,1,12
+E63_CT_CR40,"Fort Vermillion, Alberta",12,1,12
+E63_CT_CR41,"Fort Vermillion, Alberta",12,1,12
+E63_CT_CR42,"Fort Vermillion, Alberta",12,1,12
+E63_NT_CR39,"Fort Vermillion, Alberta",12,1,12
+E63_NT_CR40,"Fort Vermillion, Alberta",12,1,12
+E63_NT_CR41,"Fort Vermillion, Alberta",12,1,12
+E63_NT_CR42,"Fort Vermillion, Alberta",12,1,12
+E64_CT_CR43,"Star City, Saskatchewan",8,2,0
+E65_CT_CR5,"Woodslee,  Ontario",15,0,0
+E65_CT_CR8,"Woodslee,  Ontario",14,1,0
+E65_NT_CR5,"Woodslee,  Ontario",15,0,0
+E65_NT_CR8,"Woodslee,  Ontario",14,1,0
+E66_CT_CR44,"Woodslee,  Ontario",16,1,0
+E66_NT_CR44,"Woodslee,  Ontario",16,1,0
+E67_CT_CR1,"Swift Current, Saskatchewan",12,1,0
+E67_CT_CR2,"Swift Current, Saskatchewan",12,1,0
+E67_NT_CR1,"Swift Current, Saskatchewan",12,1,0
+E67_NT_CR2,"Swift Current, Saskatchewan",12,1,0
+E68_CT_CR1,"Stewart Valley, Saskatchewan",11,0,0
+E68_CT_CR2,"Stewart Valley, Saskatchewan",11,1,0
+E68_NT_CR1,"Stewart Valley, Saskatchewan",11,0,0
+E68_NT_CR2,"Stewart Valley, Saskatchewan",11,1,0
+E69_CT_CR32,"Scott, Saskatchewan",16,1,0
+E69_CT_CR33,"Scott, Saskatchewan",16,1,0
+E69_CT_CR34,"Scott, Saskatchewan",16,1,0
+E69_NT_CR32,"Scott, Saskatchewan",16,1,0
+E69_NT_CR33,"Scott, Saskatchewan",16,1,0
+E69_NT_CR34,"Scott, Saskatchewan",16,1,0
+E7_T1_NT_CR1,Swift Current New,264,57,0
+E7_T1_RT_CR1,Swift Current New,108,30,0
+E7_T2_NT_CR2,Swift Current New,264,57,0
+E7_T2_RT_CR2,Swift Current New,108,30,0
+E7_T3_NT_CR3,Swift Current New,264,21,0
+E7_T3_RT_CR3,Swift Current New,108,30,0
+E7_T4_NT_CR1,Swift Current New,264,57,0
+E7_T4_RT_CR1,Swift Current New,108,30,0
+E7_T5_NT_CR4,Swift Current New,352,76,0
+E7_T5_RT_CR4,Swift Current New,144,40,0
+E7_T6_NT_CR5,Swift Current New,88,19,0
+E7_T6_RT_CR5,Swift Current New,36,10,0
+E7_T7_NT_CR5,Swift Current New,88,19,0
+E7_T7_RT_CR5,Swift Current New,36,10,0
+E7_T8_NT_CR5,Swift Current New,88,7,0
+E7_T8_RT_CR5,Swift Current New,36,10,0
+E7_T9_NT_CR6,Swift Current New,352,48,0
+E7_T9_RT_CR6,Swift Current New,144,0,0
+E70_CT_CR19,"Indian Head, Saskatchewan",8,1,0
+E70_CT_CR20,"Indian Head, Saskatchewan",8,1,0
+E70_CT_CR45,"Indian Head, Saskatchewan",8,1,0
+E70_NT_CR19,"Indian Head, Saskatchewan",8,1,0
+E70_NT_CR20,"Indian Head, Saskatchewan",8,1,0
+E70_NT_CR45,"Indian Head, Saskatchewan",8,1,0
+E71_CT_CR2,"Melfort, Saskatchewan",25,1,0
+E71_NT_CR2,"Melfort, Saskatchewan",25,1,0
+E72_CT_CR1,"Swift Current, Saskatchewan",11,1,0
+E72_CT_CR2,"Swift Current, Saskatchewan",11,1,0
+E72_NT_CR1,"Swift Current, Saskatchewan",11,1,0
+E72_NT_CR2,"Swift Current, Saskatchewan",11,1,0
+E73_CT_CR43,"Star City, Saskatchewan",8,1,0
+E73_NT_CR43,"Star City, Saskatchewan",8,1,0
+E74_CT_CR38,"Charlottetown, Prince Edward Island",16,1,0
+E74_NT_CR38,"Charlottetown, Prince Edward Island",16,1,0
+E75_CT_CR8,"L'Acadie, Quebec",13,1,0
+E75_NT_CR8,"L'Acadie, Quebec",13,1,0
+E8_T1_CT_CR1,Scott,342,18,0
+E8_T2_CT_CR2,Scott,342,24,0
+E8_T3_CT_CR3,Scott,342,24,0
+E8_T4_NT_CR4,Scott,342,18,0
+E8_T5_NT_CR3,Scott,342,18,0
+E8_T6_NT_CR1,Scott,342,18,0
+E8_T7_CT_CR5,Scott,342,18,0
+E8_T8_CT_CR6,Scott,342,18,0
+E8_T9_CT_CR7,Scott,342,18,0
+E9_1_CR1,Breton,155,0,0
+E9_1_CR2,Breton,909,0,67
+E9_10_CR1,Breton,148,0,0
+E9_10_CR2,Breton,914,0,68
+E9_11_CR1,Breton,156,0,0
+E9_11_CR2,Breton,907,0,69
+E9_2_CR1,Breton,155,0,0
+E9_2_CR2,Breton,919,0,68
+E9_3_CR1,Breton,162,0,0
+E9_3_CR2,Breton,932,0,71
+E9_4_CR1,Breton,149,0,0
+E9_4_CR2,Breton,918,0,67
+E9_5_CR1,Breton,161,0,0
+E9_5_CR2,Breton,927,0,69
+E9_6_CR1,Breton,150,0,0
+E9_6_CR2,Breton,910,0,68
+E9_7_CR1,Breton,157,0,0
+E9_7_CR2,Breton,914,0,69
+E9_8_CR1,Breton,154,0,0
+E9_8_CR2,Breton,914,0,66
+E9_9_CR1,Breton,149,0,0
+E9_9_CR2,Breton,930,0,70
